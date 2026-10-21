@@ -1,12 +1,12 @@
 # Marine Outpost
 
-Target: Windows, top-down 2D, eventually distributed on Steam.
+Target: Windows, top-down 3D with an angled camera, eventually distributed on Steam.
 
 ## Playable prototype
 
-Open project.godot in Godot 4.6 and press F6 with main.tscn open, or F5 to run the project. Click a circular build pad to buy a $60 marine turret. Select a turret and use Upgrade to improve damage and range. Waves launch automatically after an initial 12-second setup and 8-second build breaks; the launch button can shorten a break. Kills grant $4; completed waves grant a cash bonus. Normal enemies cost one life when reaching the outpost; Titans cost five. Pause freezes combat; New run resets the match. The local highscore records completed waves and survives restarts.
+Open project.godot in Godot 4.6 and press F5 to run the 3D project. The previous 2D version remains in game/main.tscn and can be run separately with F6. Use the mouse wheel to zoom in 3D. Click a circular build pad to buy a $60 marine turret. Select a turret and use Upgrade to improve damage and range. Waves launch automatically after an initial 12-second setup and 8-second build breaks; the launch button can shorten a break. Kills grant $4; completed waves grant a cash bonus. Normal enemies cost one life when reaching the outpost; Titans cost five. Pause freezes combat; New run resets the match. The local highscore records completed waves and survives restarts.
 
-The prototype now uses original SVG marine, zombie, and base sprites over a drawn industrial colony map. Zombies sway as they walk; turrets turn toward their targets and hits emit sparks. This remains prototype artwork, not a finished production art pass. There is no multiplayer, Steam integration, online ladder, or permanent research yet. Endless scaling is implemented; long-run balance still needs playtesting.
+The default scene now uses original low-poly 3D models, directional lighting and shadows, an industrial colony, animated legs, rotating weapons, and combat effects. The existing 2D controller supplies the shared combat simulation and UI through a small adapter. The 2D scene and SVG assets are retained as a fallback. Next visual work: richer models, animation, sound, and Windows performance testing. This remains prototype artwork. There is no multiplayer, Steam integration, online ladder, or permanent research yet. Endless scaling is implemented; long-run balance still needs playtesting.
 
 ## Development milestones
 
