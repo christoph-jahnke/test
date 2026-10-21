@@ -6,7 +6,7 @@ run/main_scene="res://game/main.tscn"
 
 [display]
 window/size/viewport_width=1100
-window/size/viewport_height=720
+window/size/viewport_height=780
 window/stretch/mode="canvas_items"
 
 [rendering]
