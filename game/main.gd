@@ -81,6 +81,9 @@ func toggle_speed() -> void:
 func weapon(tower: Dictionary) -> Dictionary:
 	return WEAPONS[int(tower.get("kind", 0))]
 
+func get_targets(_tower: Dictionary) -> Array:
+	return enemies
+
 func tower_range(tower: Dictionary) -> float:
 	return weapon(tower).range + tower.level * 10
 
@@ -206,7 +209,7 @@ func _process(delta: float) -> void:
 		e["slow_time"] = maxf(0, float(e.get("slow_time", 0)) - delta)
 		var movement = (48 + min(wave * 2, 60)) * float(e.get("pace", 1.0))
 		if e.slow_time > 0:
-			movement *= 0.5
+			movement *= float(e.get("slow_factor", 0.5))
 		e.pos = (e.pos as Vector2).move_toward(target, movement * delta)
 		if (e.pos as Vector2).distance_to(target) < 0.1:
 			e.segment += 1
@@ -219,7 +222,7 @@ func _process(delta: float) -> void:
 		if tower.cooldown > 0:
 			continue
 		var origin: Vector2 = get_pads()[tower.pad]
-		for e in enemies:
+		for e in get_targets(tower):
 			if e.hp > 0 and origin.distance_to(e.pos) <= tower_range(tower):
 				var spec = weapon(tower)
 				var kind = int(tower.get("kind", 0))
@@ -231,12 +234,13 @@ func _process(delta: float) -> void:
 				if kind == 1:
 					impacts.append({"pos": hit_position, "ttl": 0.5, "kill": false, "blast": true})
 					for victim in enemies:
-						if victim.hp > 0 and (victim.pos as Vector2).distance_to(hit_position) < 70:
+						if victim.hp > 0 and (victim.pos as Vector2).distance_to(hit_position) < float(spec.get("splash", 70)):
 							damage_enemy(victim, spec.damage * tower.level, true)
 				else:
 					damage_enemy(e, spec.damage * tower.level, false)
 					if kind == 2:
-						e["slow_time"] = 2.5
+						e["slow_time"] = float(spec.get("slow_duration", 2.5))
+						e["slow_factor"] = float(spec.get("slow_factor", 0.5))
 				break
 	enemies = enemies.filter(func(e): return e.hp > 0)
 	for shot in shots:
@@ -246,6 +250,7 @@ func _process(delta: float) -> void:
 		active = false
 		countdown = 8.0
 		cash += 35 + wave * 5
+		gameplay_event.emit("clear")
 		if wave > best:
 			best = wave
 			var save = ConfigFile.new()

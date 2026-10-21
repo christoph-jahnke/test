@@ -15,6 +15,13 @@ var sell_button: Button
 var wave_button: Button
 var speed_button: Button
 var ability_button: Button
+var branch_buttons: Array[Button] = []
+var target_button: Button
+var research_panel: Control
+var research_info: Label
+var research_buttons: Array[Button] = []
+var save_button: Button
+var load_button: Button
 var menu: Control
 var menu_title: Label
 var menu_info: Label
@@ -78,7 +85,7 @@ func _ready() -> void:
 	header = label_at(top, "", Vector2(430, 15), 22)
 	intel = label_at(top, "", Vector2(430, 49), 14, Color("e8b972"))
 	button_at(top, "ESC / Menü", Vector2(1240, 23), Vector2(140, 42), open_menu)
-	var bottom = panel(Vector2(18, 688), Vector2(1404, 194), game_panel)
+	var bottom = panel(Vector2(18, 658), Vector2(1404, 224), game_panel)
 	label_at(bottom, "VERTEIDIGUNGSNETZ", Vector2(18, 10), 13, Color("6ab9cf"))
 	var descriptions = ["MARINE / $60\nPräzision · Salven", "MÖRSER / $110\nFläche · gegen Panzer", "KRYO / $85\nVerlangsamt um 50%"]
 	for i in 3:
@@ -91,12 +98,16 @@ func _ready() -> void:
 	sell_button = button_at(bottom, "Verkaufen", Vector2(870, 78), Vector2(200, 36), sim.sell_selected)
 	ability_button = button_at(bottom, "", Vector2(1090, 38), Vector2(294, 76), sim.activate_overdrive)
 	ability_button.tooltip_text = "8 Sekunden doppelte Feuerrate. 45 Sekunden Abklingzeit."
-	wave_button = button_at(bottom, "", Vector2(18, 135), Vector2(300, 38), sim.launch_wave)
-	speed_button = button_at(bottom, "", Vector2(330, 135), Vector2(148, 38), sim.toggle_speed)
-	button_at(bottom, "Kamera zentrieren [F]", Vector2(490, 135), Vector2(240, 38), world.center_camera)
-	label_at(bottom, "WASD: Kamera  ·  Mausrad: Zoom  ·  1/2/3: Turm  ·  Leertaste: Pause", Vector2(752, 144), 13, Color("9bb5c6"))
+	wave_button = button_at(bottom, "", Vector2(18, 164), Vector2(300, 38), sim.launch_wave)
+	speed_button = button_at(bottom, "", Vector2(330, 164), Vector2(148, 38), sim.toggle_speed)
+	button_at(bottom, "Kamera zentrieren [F]", Vector2(490, 164), Vector2(240, 38), world.center_camera)
+	label_at(bottom, "WASD: Kamera  ·  1/2/3: Turm  ·  Esc: Pause  ·  Q: Overdrive", Vector2(18, 132), 13, Color("9bb5c6"))
+	for choice in 2:
+		branch_buttons.append(button_at(bottom, "", Vector2(636 + choice * 234, 123), Vector2(220 if choice == 0 else 200, 36), specialize.bind(choice)))
+	target_button = button_at(bottom, "", Vector2(1090, 135), Vector2(294, 38), sim.cycle_target)
 	toast = label_at(game_panel, "", Vector2(38, 126), 22, Color("eac48b"))
 	build_menu()
+	build_research_panel()
 	sim.gameplay_event.connect(on_event)
 	open_menu()
 
@@ -108,14 +119,14 @@ func build_menu() -> void:
 	cover.color = Color(0.015, 0.03, 0.055, 0.8)
 	cover.size = Vector2(1440, 900)
 	menu.add_child(cover)
-	var card = panel(Vector2(100, 95), Vector2(1240, 710), menu)
+	var card = panel(Vector2(100, 70), Vector2(1240, 760), menu)
 	label_at(card, "KOLONIE 07  /  TAKTISCHES KOMMANDO", Vector2(44, 32), 14, Color("69bcd2"))
 	menu_title = label_at(card, "MARINE\nOUTPOST", Vector2(40, 65), 66)
 	label_at(card, "HALTE DIE LINIE.", Vector2(44, 244), 23, Color("e3b677"))
 	menu_info = label_at(card, "", Vector2(44, 292), 17)
-	resume_button = button_at(card, "Operation starten", Vector2(44, 426), Vector2(450, 56), close_menu)
-	button_at(card, "Neuer Einsatz", Vector2(44, 496), Vector2(215, 44), new_run)
-	button_at(card, "Spiel beenden", Vector2(274, 496), Vector2(220, 44), func(): get_tree().quit())
+	resume_button = button_at(card, "Operation starten", Vector2(44, 426), Vector2(450, 56), resume_action)
+	button_at(card, "Neuer Einsatz", Vector2(44, 496), Vector2(215, 44), request_new_run)
+	button_at(card, "Spiel beenden", Vector2(274, 496), Vector2(220, 44), quit_game)
 	label_at(card, "EINSATZBRIEFING", Vector2(624, 66), 19, Color("69bcd2"))
 	label_at(card, "01  Turm auswählen, dann Plattform anklicken.\n02  Marine, Mörser und Kryo kombinieren.\n03  Wellen starten automatisch nach der Baupause.\n04  Jeder fünfte Angriff bringt einen Titan.\n05  Overdrive rettet dich bei Durchbrüchen.", Vector2(624, 110), 18)
 	label_at(card, "EINSTELLUNGEN", Vector2(624, 320), 19, Color("69bcd2"))
@@ -141,7 +152,10 @@ func build_menu() -> void:
 	fullscreen.button_pressed = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
 	fullscreen.toggled.connect(func(value): DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if value else DisplayServer.WINDOW_MODE_WINDOWED))
 	card.add_child(fullscreen)
-	label_at(card, "ENTWICKLUNGSVERSION 0.4  /  SINGLEPLAYER\nOriginale Low-Poly-Grafik und synthetisierte Effekte.\nMultiplayer und Steam-Integration sind noch in Planung.", Vector2(44, 610), 14, Color("7f9aac"))
+	save_button = button_at(card, "Einsatz speichern", Vector2(44, 552), Vector2(215, 44), manual_save)
+	load_button = button_at(card, "Spielstand laden", Vector2(274, 552), Vector2(220, 44), manual_load)
+	button_at(card, "FORSCHUNG / permanente Verbesserungen", Vector2(44, 610), Vector2(450, 48), show_research)
+	label_at(card, "ENTWICKLUNGSVERSION 0.5  /  SINGLEPLAYER\nOriginale Low-Poly-Grafik und synthetisierte Effekte.\nMultiplayer und Steam-Integration sind noch in Planung.", Vector2(44, 684), 14, Color("7f9aac"))
 
 func apply_settings() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(master_volume, 0.0001)))
@@ -157,15 +171,21 @@ func open_menu() -> void:
 	menu.visible = true
 	game_panel.visible = false
 	resume_button.disabled = sim.lives <= 0
-	resume_button.text = "Operation starten" if sim.wave == 0 else "Einsatz fortsetzen"
+	save_button.disabled = sim.lives <= 0
+	load_button.disabled = not FileAccess.file_exists(sim.save_path) and not FileAccess.file_exists(sim.save_path + ".bak")
+	resume_button.text = ("Spielstand fortsetzen" if not sim.has_started and not load_button.disabled else ("Operation starten" if sim.wave == 0 else "Einsatz fortsetzen"))
 	menu_title.text = "BASIS\nVERLOREN" if sim.lives <= 0 else "MARINE\nOUTPOST"
-	menu_info.text = "30 Leben. Endlose Horden. Deine Verteidigung.\n16 Bauplätze · 3 Waffensysteme · Titan-Angriffe\nLokaler Rekord: %d abgeschlossene Wellen" % sim.best
+	menu_info.text = "30 Leben. Endlose Horden. Deine Verteidigung.\n16 Bauplätze · 3 Waffensysteme · Titan-Angriffe\nLokaler Rekord: %d Wellen · Forschung: %d Punkte" % [sim.best, sim.research_points]
 	if sim.lives <= 0:
 		menu_info.text = "Welle %d erreicht · %d Abschüsse\nBaue deine nächste Verteidigung besser auf.\nLokaler Rekord: %d abgeschlossene Wellen" % [sim.wave, sim.kills, sim.best]
 
 func close_menu() -> void:
 	if sim.lives <= 0:
 		return
+	if not sim.has_started:
+		sim.run_research = sim.research_levels.duplicate()
+		sim.cash = 160 + int(sim.run_research[1]) * 25
+		sim.has_started = true
 	sim.paused = false
 	menu.visible = false
 	game_panel.visible = true
@@ -176,13 +196,18 @@ func new_run() -> void:
 	previous_lives = 30
 	world.center_camera()
 	close_menu()
+	sim.save_run()
 
 func on_event(kind: String) -> void:
 	world.play_sound(kind)
-	if kind == "build":
+	if kind == "save_error":
+		show_toast("SPEICHERN FEHLGESCHLAGEN / Datenträger prüfen")
+	elif kind == "build":
 		show_toast("VERTEIDIGUNG AKTUALISIERT")
 	elif kind == "alarm":
 		show_toast("WARNUNG / Feinde durchgebrochen!")
+	elif kind == "research":
+		show_toast("FORSCHUNG GEWONNEN / %d Punkte verfügbar" % sim.research_points)
 	elif kind == "wave":
 		show_toast("TITAN IM ANMARSCH" if sim.wave % 5 == 0 else "ANGRIFFSWELLE %02d" % sim.wave)
 
@@ -196,7 +221,7 @@ func _process(delta: float) -> void:
 	toast_time = maxf(0, toast_time - delta)
 	toast.visible = toast_time > 0
 	header.text = "KREDITS  %04d     INTEGRITÄT  %02d / 30     WELLE  %02d" % [sim.cash, sim.lives, sim.wave]
-	intel.text = "FEINDKONTAKTE: %d  ·  ABSCHÜSSE: %d  ·  REKORD: %d" % [sim.enemies.size() + sim.remaining, sim.kills, sim.best]
+	intel.text = "FEINDE: %d  ·  ABSCHÜSSE: %d  ·  FORSCHUNG: %d  ·  REKORD: %d" % [sim.enemies.size() + sim.remaining, sim.kills, sim.research_points, sim.best]
 	for i in build_buttons.size():
 		build_buttons[i].modulate = Color("72d8ed") if sim.build_type == i else Color.WHITE
 		build_buttons[i].disabled = sim.cash < sim.WEAPONS[i].cost
@@ -213,8 +238,108 @@ func _process(delta: float) -> void:
 		details.text = "BAUPLATZ WÄHLEN\nTurm anklicken für Details und Upgrades."
 		upgrade_button.text = "Aufrüsten"
 		sell_button.text = "Verkaufen"
+	target_button.disabled = sim.selected < 0
+	target_button.text = "Ziel: —" if sim.selected < 0 else "Ziel: " + ["Erster", "Stärkster", "Nächster"][int(sim.towers[sim.selected].get("target", 0))]
+	for choice in branch_buttons.size():
+		var button = branch_buttons[choice]
+		button.disabled = true
+		button.text = "Spezialisierung ab MK 3"
+		if sim.selected >= 0:
+			var tower: Dictionary = sim.towers[sim.selected]
+			var branch = int(tower.get("branch", -1))
+			var name: String = sim.BRANCHES[int(tower.kind)][choice]
+			button.text = name + (" ✓" if branch == choice else (" / $%d" % sim.branch_price(tower) if branch == -1 else " —"))
+			button.add_theme_font_size_override("font_size", 13)
+			button.disabled = tower.level < 3 or branch != -1 or sim.cash < sim.branch_price(tower)
+			button.tooltip_text = [["Mehr Schaden und Reichweite; langsamere Schüsse.", "Schnelleres Feuer; weniger Schaden je Treffer."], ["Mehr Schaden pro Explosion; langsamere Schüsse.", "Größerer Explosionsradius; weniger Einzelschaden."], ["75% Verlangsamung für 3,5 Sekunden.", "Mehr Reichweite und schnellere Schüsse."]][int(tower.kind)][choice]
+	if research_panel.visible:
+		update_research()
 	wave_button.disabled = sim.active
 	wave_button.text = "WELLE %d / IM EINSATZ" % sim.wave if sim.active else "NÄCHSTE WELLE IN %ds / jetzt starten" % ceili(sim.countdown)
 	speed_button.text = "TEMPO %d×" % sim.speed
 	ability_button.disabled = sim.overdrive_cooldown > 0
 	ability_button.text = "OVERDRIVE AKTIV" if sim.overdrive > 0 else ("OVERDRIVE / %ds" % ceili(sim.overdrive_cooldown) if sim.overdrive_cooldown > 0 else "OVERDRIVE [Q]\n8s doppelte Feuerrate")
+
+func specialize(choice: int) -> void:
+	if sim.specialize(choice):
+		show_toast("SPEZIALISIERUNG INSTALLIERT")
+
+func manual_save() -> void:
+	sim.save_run()
+	menu_info.text = sim.persistence_message
+	load_button.disabled = not FileAccess.file_exists(sim.save_path)
+
+func manual_load() -> void:
+	if sim.load_run():
+		world.center_camera()
+		open_menu()
+	menu_info.text = sim.persistence_message
+
+func build_research_panel() -> void:
+	research_panel = Control.new()
+	add_child(research_panel)
+	var cover = ColorRect.new()
+	cover.color = Color(0.015, 0.03, 0.055, 0.98)
+	cover.size = Vector2(1440, 900)
+	research_panel.add_child(cover)
+	var card = panel(Vector2(160, 110), Vector2(1120, 680), research_panel)
+	label_at(card, "FORSCHUNG / KOLONIE-LABOR", Vector2(34, 30), 32, Color("7bcce4"))
+	research_info = label_at(card, "", Vector2(34, 88), 18)
+	var texts = ["BALLISTIK\n+5% Turmschaden je Stufe", "LOGISTIK\n+$25 Startkapital je Stufe", "ENERGIETECHNIK\n−3s Overdrive-Abklingzeit je Stufe"]
+	for i in 3:
+		var block = panel(Vector2(34 + i * 354, 190), Vector2(336, 260), card)
+		label_at(block, texts[i], Vector2(18, 24), 16)
+		var button = button_at(block, "", Vector2(18, 164), Vector2(300, 56), purchase_research.bind(i))
+		research_buttons.append(button)
+	label_at(card, "Pro abgeschlossener Welle: 1 Punkt. Titan-Wellen: 3 Punkte.\nJeder Bereich hat maximal 5 Stufen. Neue Forschung gilt erst im nächsten Einsatz.\nEin gespeicherter Run behält seine bisherigen Forschungsboni.", Vector2(34, 480), 17)
+	button_at(card, "Zurück zum Kommando", Vector2(34, 582), Vector2(330, 48), hide_research)
+	research_panel.visible = false
+
+func show_research() -> void:
+	research_panel.visible = true
+	update_research()
+
+func hide_research() -> void:
+	research_panel.visible = false
+	open_menu()
+
+func update_research() -> void:
+	research_info.text = "%d FORSCHUNGSPUNKTE verfügbar\nVerdiene Punkte im Endlosmodus und verbessere kommende Einsätze." % sim.research_points
+	for i in research_buttons.size():
+		var level = int(sim.research_levels[i])
+		research_buttons[i].text = "MAXIMAL / Stufe 5" if level >= 5 else "Stufe %d → %d / %d Punkte" % [level, level + 1, sim.research_cost(i)]
+		research_buttons[i].disabled = level >= 5 or sim.research_points < sim.research_cost(i)
+
+func purchase_research(index: int) -> void:
+	var success: bool = sim.buy_research(index)
+	update_research()
+	if not success:
+		research_info.text = sim.persistence_message
+
+func quit_game() -> void:
+	if sim.has_started and sim.lives > 0 and sim.save_run() != OK:
+		menu_info.text = "Speichern fehlgeschlagen. Bitte vor dem Beenden prüfen."
+		return
+	get_tree().quit()
+
+func request_new_run() -> void:
+	if (not sim.has_started and not FileAccess.file_exists(sim.save_path) and not FileAccess.file_exists(sim.save_path + ".bak")) or sim.lives <= 0:
+		new_run()
+		return
+	var dialog = ConfirmationDialog.new()
+	dialog.title = "Neuen Einsatz beginnen?"
+	dialog.dialog_text = "Der aktuelle Einsatz und sein Spielstand werden ersetzt.\nDeine Forschung und Rekorde bleiben erhalten."
+	dialog.ok_button_text = "Neuen Einsatz starten"
+	dialog.cancel_button_text = "Zurück"
+	dialog.confirmed.connect(new_run)
+	dialog.confirmed.connect(dialog.queue_free)
+	dialog.canceled.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(520, 180))
+
+func resume_action() -> void:
+	if not sim.has_started and (FileAccess.file_exists(sim.save_path) or FileAccess.file_exists(sim.save_path + ".bak")):
+		if not sim.load_run():
+			menu_info.text = sim.persistence_message + "\nMit Neuer Einsatz kannst du neu beginnen."
+			return
+	close_menu()

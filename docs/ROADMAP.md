@@ -11,8 +11,8 @@ Version 0.4 expands the map to 16 pads and adds a command HUD, menus, saved audi
 ## Development milestones
 
 1. Prove single-player combat: playtest this prototype; tune pacing and economy; add sound, enemy feedback, and clear wave previews.
-2. Strategic variety: marine, splash mortar, and cryo towers are implemented, alongside sprinters, armored zombies, and a Titan every fifth wave. Selling refunds 70% of investment. Next: upgrade branches, targeting controls, and balance playtests.
-3. Add incremental progression: single-player research earned between runs, unlocks, versioned saves, and progression balancing. Keep competitive power equal for all players.
+2. Strategic variety: marine, splash mortar, and cryo towers are implemented, alongside sprinters, armored zombies, and a Titan every fifth wave. Selling refunds 70% of investment. Version 0.5 adds six upgrade branches, targeting controls, local research and run persistence. Next: balance playtests and richer content.
+3. Incremental progression: local single-player research and versioned run saves are implemented in 0.5. Next: unlockable tower roles and progression balancing. Keep competitive power equal for all players.
 4. Build multiplayer for two, then four players: one shared map with separate lanes and 30 lives per player. Authoritative simulation validates cash, builds, wave outcomes, and attacks. Define wave synchronization, opponent targeting, disconnect rules, and ties before implementation.
 5. Add offensive spending: choose between towers/upgrades and sending zombies or strengthening an opponent's next wave. Tune attack pricing and prevent runaway income advantages. Start with last player alive wins.
 6. Steam preparation: Windows export and hardware testing, licensed visual/audio assets, accessible settings, tutorial, Steam lobbies, achievements, trusted leaderboards, and store materials. Public ladders require validated match results and an operating budget for any servers.

@@ -15,7 +15,7 @@ func run_checks() -> void:
 	# Camera ray picking must hit every build pad in the default view.
 	for index in world.sim.get_pads().size():
 		var screen: Vector2 = world.camera.unproject_position(world.point(world.sim.get_pads()[index], 0.25))
-		assert(screen.x > 0 and screen.x < 1440 and screen.y > 106 and screen.y < 688, "Pad must be visible outside HUD")
+		assert(screen.x > 0 and screen.x < 1440 and screen.y > 106 and screen.y < 658, "Pad must be visible outside HUD")
 		world.sim.cash = 1000
 		world.select_at_screen(screen)
 		assert(world.sim.towers.size() == index + 1, "Ray picking must build on the selected pad")
@@ -81,6 +81,18 @@ func run_checks() -> void:
 	world.sim.shots.clear()
 	world._process(0.01)
 	assert(not world.beam_pool[0].visible)
+	# The start screen must resume an existing slot instead of overwriting it.
+	world.sim.save_path = "user://test_resume_%d.json" % OS.get_process_id()
+	world.sim.cash = 321
+	assert(world.sim.save_run() == OK)
+	world.sim.has_started = false
+	world.sim.cash = 160
+	world.command_ui.open_menu()
+	world.command_ui.resume_action()
+	assert(world.sim.cash == 321 and not world.sim.paused)
+	for suffix in ["", ".bak"]:
+		if FileAccess.file_exists(world.sim.save_path + suffix):
+			DirAccess.remove_absolute(world.sim.save_path + suffix)
 	for player in world.sound_players:
 		player.stop()
 	await create_timer(0.15).timeout

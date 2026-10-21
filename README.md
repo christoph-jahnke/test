@@ -1,4 +1,4 @@
-# Marine Outpost — 0.4
+# Marine Outpost — 0.5
 
 Ein Sci-Fi-Tower-Defense-Prototyp für Windows mit Godot 4.6. Das Spiel startet in 3D; die ursprüngliche 2D-Szene bleibt unter `game/main.tscn` erhalten.
 
@@ -6,7 +6,17 @@ Ein Sci-Fi-Tower-Defense-Prototyp für Windows mit Godot 4.6. Das Spiel startet 
 
 ZIP entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im Hauptmenü **Operation starten** wählen. Keine zusätzlichen Assets oder Plugins nötig.
 
-## Neu in 0.4
+## Neu in 0.5
+
+- **Sechs Turm-Spezialisierungen** ab MK 3: Schaden, Feuerrate, Flächenwirkung oder Kontrolle.
+- **Forschung** zwischen Einsätzen: Ballistik, Logistik und Energietechnik, jeweils fünf Stufen.
+- **Speichern/Fortsetzen** einschließlich laufender Wellen, Autosave und Sicherungsdatei.
+- Drei Zielprioritäten und sichtbare Turm-/Titan-Beschriftungen.
+- Neue Forschungsansicht und sichere Bestätigung beim Ersetzen eines Runs.
+
+Siehe [Details und Bedienung von Version 0.5](docs/VERSION_0_5.md).
+
+## Aus Version 0.4
 
 - Größere Kolonie und längere Route mit **16 Bauplätzen**.
 - Neues Kommando-HUD, Haupt-/Pausenmenü, Einsatzbriefing und Ergebnisansicht.
@@ -16,6 +26,7 @@ ZIP entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im 
 - Detailliertere Marine-Stellungen, Koloniegebäude, Landeplatz, Beleuchtung und Trefferfunken.
 - Wiederverwendete Effekt-Meshes statt laufender Neuerzeugung.
 
+![Forschung](docs/screenshots/research.png)
 ![Hauptmenü](docs/screenshots/menu.png)
 ![Arrangierte Testsituation im echten Build](docs/screenshots/battle.png)
 
@@ -41,10 +52,11 @@ Die erste Welle startet nach zwölf Sekunden; nach jeder abgewehrten Welle folge
 ```sh
 godot --headless --path . --script res://game/smoke_test.gd
 godot --headless --path . --script res://game/smoke_3d.gd
+godot --headless --path . --script res://game/smoke_progression.gd
 ```
 
 Tests schreiben lokale Rekorde. Verwende für Tests separate `XDG_DATA_HOME`, `XDG_CONFIG_HOME` und `XDG_CACHE_HOME`, insbesondere bei schreibgeschütztem Cloud-Home.
 
 Gameplay und 3D-Integration werden automatisch geprüft. Der Build wurde außerdem mit echter OpenGL-Darstellung unter Linux geprüft; Windows-Leistung und Soundqualität brauchen eigene Spieltests.
 
-Das ist noch kein fertiges 15-€-Spiel. Siehe [Qualitätsziel und fehlende Release-Bausteine](docs/RELEASE_TARGET.md) sowie [Roadmap](docs/ROADMAP.md). Multiplayer, Steam-Integration, permanente Forschung und Speichern eines laufenden Einsatzes sind noch nicht implementiert.
+Das ist noch kein fertiges 15-€-Spiel. Siehe [Qualitätsziel und fehlende Release-Bausteine](docs/RELEASE_TARGET.md) sowie [Roadmap](docs/ROADMAP.md). Multiplayer und Steam-Integration sind noch nicht implementiert. Forschung und gespeicherte Runs bleiben lokal.

@@ -118,6 +118,7 @@ func _ready() -> void:
 	ui.add_child(status)
 	# Simulation steps first, then synchronize the 3D representation.
 	process_priority = 10
+	get_tree().auto_accept_quit = false
 
 func build_colony() -> void:
 	box(self, Vector3(0, -0.45, 0), Vector3(58, 0.8, 34), Color("182a34"))
@@ -237,6 +238,17 @@ func make_tower(data: Dictionary) -> Node3D:
 	else:
 		for side in [-1, 1]:
 			box(head, Vector3(side * 0.22, 1, -0.6), Vector3(0.13, 0.15, 1.1), Color("8195a1"))
+	var badge = Label3D.new()
+	badge.name = "Badge"
+	badge.position = Vector3(0, 1.85, 0)
+	badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	badge.font_size = 32
+	badge.pixel_size = 0.014
+	badge.modulate = color
+	model.add_child(badge)
+	if int(data.get("branch", -1)) >= 0:
+		for side in [-1, 1]:
+			box(head, Vector3(side * 0.35, 1.2, 0.35), Vector3(0.15, 0.45, 0.18), color, true)
 	return model
 
 func make_zombie(data: Dictionary) -> Node3D:
@@ -253,6 +265,17 @@ func make_zombie(data: Dictionary) -> Node3D:
 		box(model, Vector3(side * 0.1, 1.28, -0.19), Vector3(0.07, 0.05, 0.035), Color("ff7451"), true)
 	if data.get("kind", "") == "Panzer":
 		box(model, Vector3(0, 0.85, -0.17), Vector3(0.52, 0.4, 0.12), Color("7893a7"))
+	if data.get("kind", "") == "Titan":
+		for side in [-1, 1]:
+			box(model, Vector3(side * 0.36, 1.15, 0), Vector3(0.25, 0.25, 0.4), Color("846858"))
+		var badge = Label3D.new()
+		badge.text = "TITAN"
+		badge.position = Vector3(0, 1.85, 0)
+		badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		badge.font_size = 32
+		badge.pixel_size = 0.012
+		badge.modulate = Color("f0ad85")
+		model.add_child(badge)
 	var health = box(model, Vector3(0, 1.65, 0), Vector3(0.7, 0.06, 0.06), Color("b7e775"), true)
 	health.name = "Health"
 	return model
@@ -279,11 +302,16 @@ func play_sound(kind: String) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F11:
+		if event.keycode == KEY_F5:
+			if sim.save_run() == OK:
+				command_ui.show_toast("EINSATZ GESPEICHERT")
+		elif event.keycode == KEY_F11:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		elif event.keycode in [KEY_ESCAPE, KEY_SPACE]:
-			if command_ui.menu.visible:
-				command_ui.close_menu()
+			if command_ui.research_panel.visible:
+				command_ui.hide_research()
+			elif command_ui.menu.visible:
+				command_ui.resume_action()
 			else:
 				command_ui.open_menu()
 		elif not command_ui.menu.visible:
@@ -330,11 +358,18 @@ func _process(_delta: float) -> void:
 	for child in units.get_children():
 		child.set_meta("retained", false)
 	for data in sim.towers:
+		var branch = int(data.get("branch", -1))
+		if is_instance_valid(data.get("model")) and int(data.get("rendered_branch", -1)) != branch:
+			data.model.queue_free()
+			data.erase("model")
 		if not is_instance_valid(data.get("model")):
 			data["model"] = make_tower(data)
+			data["rendered_branch"] = branch
 		var model: Node3D = data.model
 		model.set_meta("retained", true)
 		model.position = point(Simulation.LARGE_PADS[data.pad])
+		var branch_name: String = sim.BRANCHES[int(data.kind)][branch] if branch >= 0 else sim.weapon(data).name
+		model.get_node("Badge").text = "%s / MK %d" % [branch_name, data.level]
 		model.get_node("Head").rotation.y = -float(data.get("aim", 0))
 	for data in sim.enemies:
 		if not is_instance_valid(data.get("model")):
@@ -349,6 +384,7 @@ func _process(_delta: float) -> void:
 		model.scale = Vector3.ONE * size
 		model.get_node("LegL").rotation.x = sin(sim.visual_time * 10 + data.pos.x) * 0.5
 		model.get_node("LegR").rotation.x = -model.get_node("LegL").rotation.x
+		model.get_node("Health").material_override = mat(Color("9edaff") if float(data.get("slow_time", 0)) > 0 else Color("b7e775"), true)
 		model.get_node("Health").scale.x = maxf(0.01, data.hp / data.max_hp)
 	for child in units.get_children():
 		if not child.get_meta("retained"):
@@ -411,3 +447,9 @@ func _process(_delta: float) -> void:
 func _exit_tree() -> void:
 	for player in sound_players:
 		player.stop()
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		if is_instance_valid(sim) and sim.has_started and sim.lives > 0:
+			sim.save_run()
+		get_tree().quit()
