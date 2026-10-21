@@ -1,5 +1,7 @@
 extends Node2D
 
+signal gameplay_event(kind: String)
+
 const ROUTE = [Vector2(-30, 220), Vector2(320, 220), Vector2(320, 450), Vector2(730, 450), Vector2(730, 250), Vector2(1130, 250)]
 const PADS = [Vector2(140, 140), Vector2(220, 300), Vector2(410, 330), Vector2(520, 530), Vector2(640, 350), Vector2(820, 360), Vector2(930, 170)]
 const MARINE = preload("res://art/marine_turret.svg")
@@ -37,6 +39,12 @@ var start: Button
 var upgrade: Button
 var pause_button: Button
 var paused = false
+
+func get_route() -> Array:
+	return ROUTE
+
+func get_pads() -> Array:
+	return PADS
 
 func _ready() -> void:
 	var save = ConfigFile.new()
@@ -80,7 +88,7 @@ func upgrade_price(tower: Dictionary) -> int:
 	return int(weapon(tower).cost * 0.75 * tower.level)
 
 func build_at(pad: int) -> bool:
-	if paused or lives <= 0 or cash < WEAPONS[build_type].cost:
+	if pad < 0 or pad >= get_pads().size() or paused or lives <= 0 or cash < WEAPONS[build_type].cost:
 		return false
 	for tower in towers:
 		if tower.pad == pad:
@@ -88,6 +96,7 @@ func build_at(pad: int) -> bool:
 	cash -= int(WEAPONS[build_type].cost)
 	towers.append({"pad": pad, "kind": build_type, "level": 1, "cooldown": 0.0, "spent": int(WEAPONS[build_type].cost)})
 	selected = towers.size() - 1
+	gameplay_event.emit("build")
 	refresh_ui()
 	return true
 
@@ -125,6 +134,7 @@ func launch_wave() -> void:
 	remaining = 7 + wave * 3
 	spawn_clock = 0
 	active = true
+	gameplay_event.emit("wave")
 	refresh_ui()
 
 func toggle_pause() -> void:
@@ -157,12 +167,13 @@ func upgrade_selected() -> void:
 		cash -= price
 		towers[selected]["spent"] = int(towers[selected].get("spent", weapon(towers[selected]).cost)) + price
 		towers[selected].level += 1
+		gameplay_event.emit("build")
 	refresh_ui()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and not paused and lives > 0:
-		for i in PADS.size():
-			if get_global_mouse_position().distance_to(PADS[i]) < 28:
+		for i in get_pads().size():
+			if get_global_mouse_position().distance_to(get_pads()[i]) < 28:
 				selected = -1
 				for t in towers.size():
 					if towers[t].pad == i:
@@ -191,7 +202,7 @@ func _process(delta: float) -> void:
 			remaining -= 1
 			spawn_clock = maxf(0.25, 0.85 - wave * 0.025)
 	for e in enemies:
-		var target: Vector2 = ROUTE[e.segment]
+		var target: Vector2 = get_route()[e.segment]
 		e["slow_time"] = maxf(0, float(e.get("slow_time", 0)) - delta)
 		var movement = (48 + min(wave * 2, 60)) * float(e.get("pace", 1.0))
 		if e.slow_time > 0:
@@ -199,18 +210,20 @@ func _process(delta: float) -> void:
 		e.pos = (e.pos as Vector2).move_toward(target, movement * delta)
 		if (e.pos as Vector2).distance_to(target) < 0.1:
 			e.segment += 1
-			if e.segment >= ROUTE.size():
+			if e.segment >= get_route().size():
 				e.hp = -1
 				lives = maxi(0, lives - int(e.get("leak", 1)))
+				gameplay_event.emit("alarm")
 	for tower in towers:
 		tower.cooldown -= delta
 		if tower.cooldown > 0:
 			continue
-		var origin: Vector2 = PADS[tower.pad]
+		var origin: Vector2 = get_pads()[tower.pad]
 		for e in enemies:
 			if e.hp > 0 and origin.distance_to(e.pos) <= tower_range(tower):
 				var spec = weapon(tower)
 				var kind = int(tower.get("kind", 0))
+				gameplay_event.emit("mortar" if kind == 1 else ("cryo" if kind == 2 else "shot"))
 				tower.cooldown = spec.rate / (1 + (tower.level - 1) * 0.08)
 				tower["aim"] = (e.pos - origin).angle() + PI / 2
 				shots.append({"from": origin, "to": e.pos, "ttl": 0.16, "color": spec.color})
@@ -273,7 +286,7 @@ func create_enemy() -> Dictionary:
 		pace = 1.8
 		reward = 6
 		tint = Color("e6db8e")
-	return {"pos": ROUTE[0], "segment": 1, "hp": health, "max_hp": health, "kind": kind, "pace": pace, "armor": armor, "reward": reward, "leak": leak, "tint": tint, "size": size, "slow_time": 0.0}
+	return {"pos": get_route()[0], "segment": 1, "hp": health, "max_hp": health, "kind": kind, "pace": pace, "armor": armor, "reward": reward, "leak": leak, "tint": tint, "size": size, "slow_time": 0.0}
 
 func damage_enemy(enemy: Dictionary, amount: float, piercing: bool) -> void:
 	if enemy.hp <= 0:
@@ -283,6 +296,7 @@ func damage_enemy(enemy: Dictionary, amount: float, piercing: bool) -> void:
 	if enemy.hp <= 0:
 		cash += int(enemy.get("reward", 4))
 		kills += 1
+		gameplay_event.emit("kill")
 
 func refresh_ui() -> void:
 	hud.text = "MARINE OUTPOST   |   $%d   |   Leben %d/30   |   Welle %d   |   Rekord %d" % [cash, lives, wave, best]
@@ -315,14 +329,14 @@ func _draw() -> void:
 			var shade = 0.075 + float((x * 7 + y * 13) % 5) * 0.004
 			draw_rect(Rect2(x + 1, y + 1, 46, 46), Color(shade, shade + 0.025, shade + 0.04))
 			draw_circle(Vector2(x + 5, y + 5), 1, Color("344451"))
-	for i in range(ROUTE.size() - 1):
-		draw_line(ROUTE[i], ROUTE[i + 1], Color("070e16"), 64)
-		draw_line(ROUTE[i], ROUTE[i + 1], Color("425158"), 56)
-		draw_line(ROUTE[i], ROUTE[i + 1], Color("252f36"), 48)
-		var distance = ROUTE[i].distance_to(ROUTE[i + 1])
+	for i in range(get_route().size() - 1):
+		draw_line(get_route()[i], get_route()[i + 1], Color("070e16"), 64)
+		draw_line(get_route()[i], get_route()[i + 1], Color("425158"), 56)
+		draw_line(get_route()[i], get_route()[i + 1], Color("252f36"), 48)
+		var distance = get_route()[i].distance_to(get_route()[i + 1])
 		for step in range(0, int(distance), 32):
-			var pos = ROUTE[i].move_toward(ROUTE[i + 1], step)
-			draw_line(pos, pos + (ROUTE[i + 1] - ROUTE[i]).normalized() * 12, Color("64705c"), 2)
+			var pos = get_route()[i].move_toward(get_route()[i + 1], step)
+			draw_line(pos, pos + (get_route()[i + 1] - get_route()[i]).normalized() * 12, Color("64705c"), 2)
 	# Cargo, service buildings, and warning beacons frame the combat lane.
 	for pos in [Vector2(45, 410), Vector2(110, 460), Vector2(485, 125), Vector2(560, 145), Vector2(905, 490)]:
 		draw_rect(Rect2(pos + Vector2(4, 7), Vector2(62, 43)), Color("080e15"))
@@ -332,7 +346,7 @@ func _draw() -> void:
 			draw_line(pos + Vector2(rib, 5), pos + Vector2(rib, 35), Color("4d5b60"), 3)
 		draw_rect(Rect2(pos + Vector2(5, 16), Vector2(8, 6)), Color("d5a75d"))
 	draw_texture_rect(BASE, Rect2(986, 177, 114, 145), false)
-	for pad in PADS:
+	for pad in get_pads():
 		draw_rect(Rect2(pad - Vector2(29, 25), Vector2(58, 54)), Color("080f19"))
 		draw_rect(Rect2(pad - Vector2(26, 26), Vector2(52, 48)), Color("354859"))
 		draw_rect(Rect2(pad - Vector2(22, 22), Vector2(44, 40)), Color("1b2c3b"))
@@ -342,7 +356,7 @@ func _draw() -> void:
 			draw_rect(Rect2(pad + Vector2(corner * 22 - 2, -23), Vector2(4, 6)), Color("e6b25c"))
 	for i in towers.size():
 		var tower = towers[i]
-		var pos: Vector2 = PADS[tower.pad]
+		var pos: Vector2 = get_pads()[tower.pad]
 		if i == selected:
 			draw_circle(pos, tower_range(tower), Color(0.2, 0.65, 0.85, 0.045))
 			draw_arc(pos, tower_range(tower), 0, TAU, 96, Color(0.2, 0.65, 0.85, 0.35), 1)
@@ -359,7 +373,7 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, pos + Vector2(-15, 40), "%s %d" % [weapon(tower).name, tower.level], HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("a4d3e4"))
 	for e in enemies:
 		var scale_factor = minf(1.65, 0.75 + wave * 0.045) * float(e.get("size", 1.0))
-		var facing = (ROUTE[mini(e.segment, ROUTE.size() - 1)] - e.pos).angle() + PI / 2
+		var facing = (get_route()[mini(e.segment, get_route().size() - 1)] - e.pos).angle() + PI / 2
 		var sway = sin(visual_time * 11 + e.pos.x * 0.1) * 0.09
 		draw_set_transform(e.pos, facing + sway, Vector2.ONE * scale_factor)
 		draw_texture_rect(ZOMBIE, Rect2(-22, -22, 44, 44), false, e.get("tint", Color.WHITE))
