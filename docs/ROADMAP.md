@@ -6,7 +6,7 @@ Target: Windows, top-down 2D, eventually distributed on Steam.
 
 Open project.godot in Godot 4.6 and press F6 with main.tscn open, or F5 to run the project. Click a circular build pad to buy a $60 marine turret. Select a turret and use Upgrade to improve damage and range. Launch each wave when ready. Kills grant $4; completed waves grant a cash bonus. Every zombie reaching the blue outpost costs one of 30 lives. Pause freezes combat; New run resets the match. The local highscore records completed waves and survives restarts.
 
-This is a mechanics prototype using drawn shapes, not finished artwork. There is no multiplayer, Steam integration, online ladder, or permanent research yet. Endless scaling is implemented; long-run balance still needs playtesting.
+The prototype now uses original SVG marine, zombie, and base sprites over a drawn industrial colony map. Zombies sway as they walk; turrets turn toward their targets and hits emit sparks. This remains prototype artwork, not a finished production art pass. There is no multiplayer, Steam integration, online ladder, or permanent research yet. Endless scaling is implemented; long-run balance still needs playtesting.
 
 ## Development milestones
 
