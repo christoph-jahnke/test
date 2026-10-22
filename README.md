@@ -1,62 +1,56 @@
-# Marine Outpost — 0.5
+# Marine Outpost — 0.6
 
-Ein Sci-Fi-Tower-Defense-Prototyp für Windows mit Godot 4.6. Das Spiel startet in 3D; die ursprüngliche 2D-Szene bleibt unter `game/main.tscn` erhalten.
+Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit freiem Turmbau, zufälligen Routen und Forschung zwischen Einsätzen.
 
 ## Start
 
-ZIP entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im Hauptmenü **Operation starten** wählen. Keine zusätzlichen Assets oder Plugins nötig.
+ZIP in einen neuen Ordner entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im Hauptmenü **Operation starten** wählen.
 
-## Neu in 0.5
+## Neu in 0.6
 
-- **Sechs Turm-Spezialisierungen** ab MK 3: Schaden, Feuerrate, Flächenwirkung oder Kontrolle.
-- **Forschung** zwischen Einsätzen: Ballistik, Logistik und Energietechnik, jeweils fünf Stufen.
-- **Speichern/Fortsetzen** einschließlich laufender Wellen, Autosave und Sicherungsdatei.
-- Drei Zielprioritäten und sichtbare Turm-/Titan-Beschriftungen.
-- Neue Forschungsansicht und sichere Bestätigung beim Ersetzen eines Runs.
+- **Frei platzieren:** keine vorgegebenen Bauplätze, kein Raster. Straßen, Rand und andere Türme bleiben frei. Vorschau mit Reichweite, gültiger/ungültiger Farbe und Begründung.
+- **Zufällige Lane pro neuem Einsatz.** Der Seed wird mitgespeichert, die Route ändert sich nicht während eines laufenden Runs.
+- **Kontext-UI:** Baukarten beim Bauen; beim Turmklick wechseln sie zu Werten, Upgrades, Spezialisierungen, Zielwahl und Verkauf. Rechtsklick oder Esc hebt die Auswahl auf.
+- **Credits springen hoch:** Jeder Abschuss zeigt eine animierte goldene Münze und den tatsächlichen Betrag über dem Gegner.
+- Neuer Boden mit prozeduraler Struktur, beleuchtete Straßenränder, weniger Schilder, runde Zombie-Körper und neue Turmsockel. Kulissen stehen außerhalb des Baugebiets.
 
-Siehe [Details und Bedienung von Version 0.5](docs/VERSION_0_5.md).
-
-## Aus Version 0.4
-
-- Größere Kolonie und längere Route mit **16 Bauplätzen**.
-- Neues Kommando-HUD, Haupt-/Pausenmenü, Einsatzbriefing und Ergebnisansicht.
-- Gespeicherte Lautstärke- und Schatteneinstellungen, Vollbild über F11.
-- **Overdrive**: acht Sekunden doppelte Feuerrate, 45 Sekunden Abklingzeit.
-- Sechs originale synthetisierte Effekte für Waffen, Bauen, Angriffe und Alarme.
-- Detailliertere Marine-Stellungen, Koloniegebäude, Landeplatz, Beleuchtung und Trefferfunken.
-- Wiederverwendete Effekt-Meshes statt laufender Neuerzeugung.
-
-![Forschung](docs/screenshots/research.png)
-![Hauptmenü](docs/screenshots/menu.png)
-![Arrangierte Testsituation im echten Build](docs/screenshots/battle.png)
+![Freier Bau und Abschuss-Credits](docs/screenshots/battle.png)
+![Turm ausgewählt: Kontextansicht](docs/screenshots/inspector.png)
 
 ## Steuerung
 
 | Aktion | Eingabe |
 | --- | --- |
-| Turm wählen | 1 / 2 / 3 oder Turmkarte |
-| Bauen / Turm auswählen | Linksklick auf Plattform / Turm |
-| Kamera bewegen | WASD |
+| Turm zum Bauen wählen | 1 / 2 / 3 oder Baukarte |
+| Frei platzieren | Linksklick neben der Straße |
+| Turm auswählen | Linksklick auf Turm |
+| Bau/Selektion abbrechen | Rechtsklick / Esc |
+| Kamera bewegen / zentrieren | WASD / F |
 | Zoom | Mausrad |
-| Kamera zurücksetzen | F |
-| Overdrive | Q oder Schaltfläche |
-| Pause / Menü | Leertaste / Escape |
+| Overdrive | Q |
+| Pause / Menü | Leertaste; Esc ohne aktive Auswahl |
+| Manuell speichern | F5 im laufenden Spiel oder Menü |
 | Vollbild | F11 |
 
-Marine kostet $60, Mörser $110 und Kryo $85. Mörser treffen mehrere Gegner und ignorieren Rüstung. Kryo halbiert die Bewegung für 2,5 Sekunden. Verkauf erstattet 70 % der Investition.
+Marine $60, Mörser $110, Kryo $85. Ab MK 3 stehen pro Turm zwei Spezialisierungen zur Wahl. Verkauf erstattet 70 % der Investition. Höchstens 80 Türme pro Einsatz.
 
-Die erste Welle startet nach zwölf Sekunden; nach jeder abgewehrten Welle folgen acht Sekunden Baupause. Sprinter kommen ab Welle 2, Panzer ab Welle 3, Titans in jeder fünften Welle. Normale Durchbrüche kosten ein Leben, Titans fünf. Du startest mit 30 Leben. Der lokale Rekord zählt abgeschlossene Wellen. Pause stoppt auch Countdown und Fähigkeiten.
+Wellen starten automatisch nach zwölf Sekunden Vorbereitung und acht Sekunden Baupause. Sprinter ab Welle 2, Panzer ab Welle 3, Titan alle fünf Wellen. Du hast 30 Leben; Titans kosten bei Durchbruch fünf. Overdrive verdoppelt die Feuerrate acht Sekunden lang.
 
-## Validierung
+## Fortschritt und Spielstände
+
+Forschung, Spezialisierungen und Zielprioritäten aus [Version 0.5](docs/VERSION_0_5.md) bleiben erhalten. Autosave alle 20 Sekunden außerhalb der Pause und nach abgewehrten Wellen. Beim nächsten Start **Spielstand fortsetzen** wählen.
+
+0.6 speichert freie Koordinaten und den Karten-Seed in **`run_v2.json`**. Die alten festen Run-Spielstände aus 0.5 (`run_v1.json`) sind nicht kompatibel und werden nicht verändert. **Forschung, Rekorde und Einstellungen bleiben erhalten.** Details: [Version 0.6](docs/VERSION_0_6.md).
+
+## Tests
 
 ```sh
 godot --headless --path . --script res://game/smoke_test.gd
 godot --headless --path . --script res://game/smoke_3d.gd
 godot --headless --path . --script res://game/smoke_progression.gd
+godot --headless --path . --script res://game/smoke_maps.gd
 ```
 
-Tests schreiben lokale Rekorde. Verwende für Tests separate `XDG_DATA_HOME`, `XDG_CONFIG_HOME` und `XDG_CACHE_HOME`, insbesondere bei schreibgeschütztem Cloud-Home.
+Tests schreiben Nutzerdaten. Verwende separate `XDG_DATA_HOME`, `XDG_CONFIG_HOME` und `XDG_CACHE_HOME`. Die Grafik wird zusätzlich mit OpenGL unter Linux geprüft; Windows-Leistung und Audio benötigen eigene Spieltests. Screenshots zeigen arrangierte Situationen im tatsächlichen Build.
 
-Gameplay und 3D-Integration werden automatisch geprüft. Der Build wurde außerdem mit echter OpenGL-Darstellung unter Linux geprüft; Windows-Leistung und Soundqualität brauchen eigene Spieltests.
-
-Das ist noch kein fertiges 15-€-Spiel. Siehe [Qualitätsziel und fehlende Release-Bausteine](docs/RELEASE_TARGET.md) sowie [Roadmap](docs/ROADMAP.md). Multiplayer und Steam-Integration sind noch nicht implementiert. Forschung und gespeicherte Runs bleiben lokal.
+Multiplayer und Steam-Anbindung fehlen noch. Siehe [Roadmap](docs/ROADMAP.md) und [Release-Qualitätsziel](docs/RELEASE_TARGET.md). Der alte 2D-Prototyp bleibt als separate Szene `game/main.tscn` erhalten.

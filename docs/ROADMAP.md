@@ -1,27 +1,17 @@
-# Marine Outpost
+# Marine Outpost — Entwicklungsplan
 
-Target: Windows, top-down 3D with an angled camera, eventually distributed on Steam.
+Ziel: Windows, Top-down-3D, langfristig Steam. Multiplayer: vier getrennte Verteidigungslanes auf einer gemeinsamen Karte, 30 Leben je Spieler; Geld entweder für Verteidigung oder offensive Gegner-Sends ausgeben.
 
-## Playable prototype
+## Stand 0.6
 
-Open project.godot in Godot 4.6 and press F5 to run the 3D project. The previous 2D version remains in game/main.tscn and can be run separately with F6. Use the mouse wheel to zoom in 3D. Choose a tower and click a lit build pad to buy a $60 marine turret. Select a turret and use Upgrade to improve damage and range. Waves launch automatically after an initial 12-second setup and 8-second build breaks; the launch button can shorten a break. Kills grant $4; completed waves grant a cash bonus. Normal enemies cost one life when reaching the outpost; Titans cost five. Pause freezes combat; New run resets the match. The local highscore records completed waves and survives restarts.
+Freie Turmplatzierung, zufällige Route je Run, kontextabhängige Bau-/Turmoberfläche, Abschuss-Credits. Automatische Wellen, drei Turmrollen, sechs Spezialisierungen, drei Zielprioritäten, Sprinter/Panzer/Titans, Forschung und lokales Speichern/Fortsetzen. Kamera, Menüs und Einstellungen vorhanden.
 
-Version 0.4 expands the map to 16 pads and adds a command HUD, menus, saved audio/shadow settings, sound effects, camera movement, and a temporary Overdrive ability. The default scene now uses original low-poly 3D models, directional lighting and shadows, an industrial colony, animated legs, rotating weapons, and combat effects. The existing 2D controller supplies the shared combat simulation and UI through a small adapter. The 2D scene and SVG assets are retained as a fallback. Next visual work: richer models, animation, sound, and Windows performance testing. This remains prototype artwork. There is no multiplayer, Steam integration, online ladder, or permanent research yet. Endless scaling is implemented; long-run balance still needs playtesting.
+## Nächste Etappen
 
-## Development milestones
+1. Bedienung und Lesbarkeit des neuen freien Baus auf Windows testen. Kampf, Wirtschaft und Wellen anhand kompletter Runs abstimmen.
+2. Den visuellen Stil mit besseren Modellen, Animationen, Partikeln, Sound und Umgebung ausarbeiten. Keine feste Zahl von neuen Features ersetzt diese Qualitätsarbeit.
+3. Weitere Turmrollen, sinnvolle Freischaltungen und Kartenmodifikatoren hinzufügen; Fortschritt balancieren.
+4. Multiplayer zuerst mit zwei, dann vier Spielern: autoritative Wirtschaft und Gegnerbewegung, Sends, Verbindungsabbrüche, faire Ergebnisse. Permanente Einzelspieler-Boni nicht in kompetitive Matches übernehmen.
+5. Windows-Export, Hardwaretests, Steam-Integration und Store-Vorbereitung. Öffentliche Ladders benötigen vertrauenswürdige Ergebnisse.
 
-1. Prove single-player combat: playtest this prototype; tune pacing and economy; add sound, enemy feedback, and clear wave previews.
-2. Strategic variety: marine, splash mortar, and cryo towers are implemented, alongside sprinters, armored zombies, and a Titan every fifth wave. Selling refunds 70% of investment. Version 0.5 adds six upgrade branches, targeting controls, local research and run persistence. Next: balance playtests and richer content.
-3. Incremental progression: local single-player research and versioned run saves are implemented in 0.5. Next: unlockable tower roles and progression balancing. Keep competitive power equal for all players.
-4. Build multiplayer for two, then four players: one shared map with separate lanes and 30 lives per player. Authoritative simulation validates cash, builds, wave outcomes, and attacks. Define wave synchronization, opponent targeting, disconnect rules, and ties before implementation.
-5. Add offensive spending: choose between towers/upgrades and sending zombies or strengthening an opponent's next wave. Tune attack pricing and prevent runaway income advantages. Start with last player alive wins.
-6. Steam preparation: Windows export and hardware testing, licensed visual/audio assets, accessible settings, tutorial, Steam lobbies, achievements, trusted leaderboards, and store materials. Public ladders require validated match results and an operating budget for any servers.
-
-## Decisions still open
-
-- Multiplayer waves: synchronized rounds or individually launched waves?
-- Sending enemies: select one opponent or use a fixed rotation?
-- Match duration, expected run length, and research progression speed.
-- Final art direction and title (Marine Outpost is a working title).
-
-Use the existing isolated checkout for development; no extra Git worktree is necessary.
+Das Projekt ist ein Entwicklungsstand. Siehe [Qualitätsziel](RELEASE_TARGET.md). Nutze den bestehenden isolierten Checkout; zusätzliche Git-Worktrees sind für die Entwicklung nicht nötig.

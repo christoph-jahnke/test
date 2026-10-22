@@ -1,6 +1,6 @@
 # Qualitätsziel: ein vollständiges Spiel für etwa 15 €
 
-Der Preis ist eine Positionierung, kein Nachweis für Qualität. Version 0.5 ist ein spielbarer Entwicklungsstand und noch kein verkaufsfertiges Produkt.
+Der Preis ist eine Positionierung, kein Nachweis für Qualität. Version 0.6 ist ein spielbarer Entwicklungsstand und noch kein verkaufsfertiges Produkt.
 
 ## Versprechen an den Spieler
 
@@ -8,11 +8,11 @@ Eine lesbare, reaktionsschnelle Sci-Fi-Verteidigung mit endlosen Angriffen und E
 
 ## Aktuell umgesetzt
 
-- Größere 3D-Kolonie, längere Route, 16 Bauplätze, drei Turmrollen.
+- 3D-Kolonie, zufällige Route pro Run, freie Platzierung, drei Turmrollen.
 - Automatische Wellen, normale, schnelle und gepanzerte Zombies, Titan alle fünf Wellen.
 - Aufrüsten, sechs Spezialisierungen, drei Zielprioritäten, Verkauf, lokale Rekorde, Tempo 1×/2× und Overdrive.
 - Drei Forschungszweige für folgende Einsätze; lokale Run-Speicherung mit Autosave und Sicherung.
-- Haupt-/Pausenmenü, Einsatzbriefing, Ergebnisanzeige, deutsches Kommando-HUD.
+- Haupt-/Pausenmenü, Einsatzbriefing, Ergebnisanzeige, Kontext-UI für Bauen und ausgewählte Türme.
 - WASD-Kamera, Zoom, Vollbild, gespeicherte Lautstärke- und Schatteneinstellungen.
 - Originale einfache 3D-Modelle und sechs synthetisierte Soundeffekte.
 
@@ -37,4 +37,4 @@ Eine lesbare, reaktionsschnelle Sci-Fi-Verteidigung mit endlosen Angriffen und E
 3. Die neuen Upgrade-Verzweigungen und Forschung spielen, dann Wirtschaft und Schwierigkeit mit wiederholten Runs abstimmen.
 4. Erst mit stabilem Einzelspieler-Kern Multiplayer und Steam vorbereiten.
 
-Die Screenshots unter `screenshots/` zeigen den echten Build. `battle.png` und `research.png` verwenden arrangierte Testsituationen, um Spezialisierungen, Forschung und mehrere Gegnertypen gleichzeitig zu zeigen; es ist keine Aussage zur in einem normalen Run erreichten Ausstattung. Sound ist technisch eingebunden, wurde in der Cloud jedoch nicht über Lautsprecher beurteilt.
+Die Screenshots unter `screenshots/` zeigen den echten Build. `battle.png`, `inspector.png` und `research.png` verwenden arrangierte Testsituationen, um Spezialisierungen, Forschung und mehrere Gegnertypen gleichzeitig zu zeigen; es ist keine Aussage zur in einem normalen Run erreichten Ausstattung. Sound ist technisch eingebunden, wurde in der Cloud jedoch nicht über Lautsprecher beurteilt.

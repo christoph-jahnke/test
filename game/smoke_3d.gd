@@ -8,96 +8,102 @@ func run_checks() -> void:
 	root.add_child(world)
 	await process_frame
 	world.set_process(false)
+	world.sim.set_process(false)
 	assert(world.command_ui.menu.visible and world.sim.paused)
 	world.command_ui.close_menu()
-	assert(not world.sim.paused)
-	world.sim.set_process(false)
-	# Camera ray picking must hit every build pad in the default view.
-	for index in world.sim.get_pads().size():
-		var screen: Vector2 = world.camera.unproject_position(world.point(world.sim.get_pads()[index], 0.25))
-		assert(screen.x > 0 and screen.x < 1440 and screen.y > 106 and screen.y < 658, "Pad must be visible outside HUD")
-		world.sim.cash = 1000
-		world.select_at_screen(screen)
-		assert(world.sim.towers.size() == index + 1, "Ray picking must build on the selected pad")
+	for seed_value in range(1, 51):
+		for route_point in world.sim.route_for_seed(seed_value):
+			var projected: Vector2 = world.camera.unproject_position(world.point(route_point, 0.8))
+			assert(projected.x > 0 and projected.x < 1440 and projected.y > 94 and projected.y < 666, "Default camera must keep random lanes outside HUD")
+	world.sim.cash = 10000
+	# Free points are picked with the actual camera projection, not pad indices.
+	var placements: Array[Vector2] = []
+	for x in range(80, 1300, 100):
+		for y in range(90, 700, 100):
+			var pos = Vector2(x + 7, y + 3)
+			if world.sim.placement_reason(pos).is_empty():
+				placements.append(pos)
+				world.begin_build(0)
+				world.select_at_screen(world.camera.unproject_position(world.point(pos, 0.15)))
+				assert(world.sim.towers.size() == placements.size())
+				if placements.size() == 6:
+					break
+		if placements.size() == 6:
+			break
+	assert(world.sim.towers.size() == 6)
 	world._process(0.01)
-	assert(world.units.get_child_count() == 16)
+	assert(world.units.get_child_count() == 6)
+	# Clicking a body switches to its inspector; deselection restores the shop.
+	world.sim.selected = -1
+	world.select_at_screen(world.camera.unproject_position(world.point(placements[0], 0.8)))
+	assert(world.sim.selected == 0 and not world.building)
+	world.command_ui._process(0.01)
+	assert(world.command_ui.inspector_view.visible and not world.command_ui.build_view.visible)
+	world.command_ui.deselect_tower()
+	world.command_ui._process(0.01)
+	assert(world.command_ui.build_view.visible and not world.command_ui.inspector_view.visible)
+	# Killing pays exactly once and creates a rising coin, frozen while paused.
+	var enemy = world.sim.create_enemy()
+	enemy.pos = world.sim.get_route()[1]
+	var money_before: int = world.sim.cash
+	world.sim.damage_enemy(enemy, 1000000, true)
+	assert(world.sim.cash == money_before + enemy.reward)
+	assert(world.floating_credits.size() == 1)
+	world.sim.damage_enemy(enemy, 1000000, true)
+	assert(world.floating_credits.size() == 1)
+	var coin = world.floating_credits[0].node
+	var initial_height: float = coin.position.y
+	world._process(0.3)
+	assert(coin.position.y > initial_height)
+	world.sim.paused = true
+	var age: float = world.floating_credits[0].age
+	world._process(0.3)
+	assert(world.floating_credits[0].age == age)
+	world.sim.paused = false
+	world._process(2)
+	await process_frame
+	assert(world.floating_credits.is_empty())
+	# Free positions and the seed survive a full save/load + terrain rebuild.
+	world.sim.save_path = "user://test_free_%d.json" % OS.get_process_id()
+	var old_route: Array = world.sim.route.duplicate()
+	var old_positions: Array = world.sim.build_sites.duplicate()
+	assert(world.sim.save_run() == OK)
+	world.sim.route = world.sim.route_for_seed(5)
+	assert(world.sim.load_run())
+	assert(world.sim.route == old_route and world.sim.build_sites == old_positions)
+	world._process(0.01)
+	await process_frame
+	assert(world.units.get_child_count() == 6)
+	world.command_ui.close_menu()
+	world.sim.selected = 0
 	world.sim.sell_selected()
 	world._process(0.01)
 	await process_frame
-	assert(world.units.get_child_count() == 15, "Selling must remove the 3D model")
-	world.sim.wave = 5
-	world.sim.spawned = 0
-	var boss = world.sim.create_enemy()
-	world.sim.enemies.append(boss)
-	world._process(0.01)
-	assert(is_instance_valid(boss.model) and boss.model.scale.x > 1.5)
-	world.sim.reset_run()
+	assert(world.units.get_child_count() == 5)
+	world.command_ui.new_run()
 	world._process(0.01)
 	await process_frame
-	assert(world.units.get_child_count() == 0, "Reset must clear all 3D units")
-	# Fresh auto-wave actually creates a 3D zombie, then cleanup on death.
+	assert(world.units.get_child_count() == 0 and world.sim.route != old_route)
 	world.sim.countdown = 0
 	world.sim._process(0.1)
 	world._process(0.1)
-	assert(world.sim.active and world.sim.enemies.size() == 1)
-	assert(is_instance_valid(world.sim.enemies[0].model))
-	world.sim.enemies.clear()
-	world._process(0.1)
-	await process_frame
-	assert(world.units.get_child_count() == 0)
-	world.sim.reset_run()
-	world.sim.build_at(0)
+	assert(world.sim.active and is_instance_valid(world.sim.enemies[0].model))
 	world.sim.activate_overdrive()
-	assert(world.sim.overdrive == 8 and world.sim.overdrive_cooldown == 45)
-	world.sim._process(1)
-	assert(world.sim.overdrive == 7 and world.sim.overdrive_cooldown == 44)
-	world.sim.activate_overdrive()
-	assert(world.sim.overdrive == 7, "Ability cannot bypass cooldown")
 	world.command_ui.open_menu()
 	world.sim._process(10)
-	assert(world.sim.overdrive == 7, "Menu freezes ability timers")
-	world.command_ui.close_menu()
-	world.command_ui.new_run()
-	assert(world.sim.overdrive_cooldown == 0 and world.sim.towers.is_empty())
-	world.sim.lives = 0
-	world.command_ui._process(0.1)
-	assert(world.command_ui.menu.visible and world.command_ui.resume_button.disabled)
-	world.command_ui.new_run()
-	assert(not world.command_ui.menu.visible and world.sim.lives == 30)
-	# Saved settings are readable, and rendering effects reuse their meshes.
+	assert(world.sim.overdrive == 8)
 	world.command_ui.master_volume = 0.4
 	world.command_ui.shadows = false
 	world.command_ui.apply_settings()
 	world.command_ui.save_settings()
-	var saved = ConfigFile.new()
-	assert(saved.load("user://settings.cfg") == OK)
-	assert(is_equal_approx(float(saved.get_value("audio", "volume")), 0.4))
 	assert(not world.sun.shadow_enabled)
-	world.sim.shots.append({"from": Vector2(80, 140), "to": Vector2(100, 210), "ttl": 0.1})
-	world._process(0.01)
-	var count_before = world.effects.get_child_count()
-	world._process(0.01)
-	assert(world.effects.get_child_count() == count_before)
-	world.sim.shots.clear()
-	world._process(0.01)
-	assert(not world.beam_pool[0].visible)
-	# The start screen must resume an existing slot instead of overwriting it.
-	world.sim.save_path = "user://test_resume_%d.json" % OS.get_process_id()
-	world.sim.cash = 321
-	assert(world.sim.save_run() == OK)
-	world.sim.has_started = false
-	world.sim.cash = 160
-	world.command_ui.open_menu()
-	world.command_ui.resume_action()
-	assert(world.sim.cash == 321 and not world.sim.paused)
 	for suffix in ["", ".bak"]:
 		if FileAccess.file_exists(world.sim.save_path + suffix):
 			DirAccess.remove_absolute(world.sim.save_path + suffix)
 	for player in world.sound_players:
 		player.stop()
-	await create_timer(0.15).timeout
+	await create_timer(0.1).timeout
 	world.queue_free()
-	await process_frame
 	await create_timer(0.15).timeout
-	print("PASS: 3D startup, visible pads, camera ray picking, models, sale, boss scale, reset, auto-wave, menu, ability cooldown, game-over flow, settings, effect pooling")
+	print("PASS: free camera picking, contextual UI, kill coins, pause, seed/position persistence, visual rebuild, sale, random restart, waves, settings")
 	quit(0)

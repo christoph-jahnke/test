@@ -1,6 +1,7 @@
 extends Node2D
 
 signal gameplay_event(kind: String)
+signal enemy_defeated(position: Vector2, reward: int)
 
 const ROUTE = [Vector2(-30, 220), Vector2(320, 220), Vector2(320, 450), Vector2(730, 450), Vector2(730, 250), Vector2(1130, 250)]
 const PADS = [Vector2(140, 140), Vector2(220, 300), Vector2(410, 330), Vector2(520, 530), Vector2(640, 350), Vector2(820, 360), Vector2(930, 170)]
@@ -300,6 +301,7 @@ func damage_enemy(enemy: Dictionary, amount: float, piercing: bool) -> void:
 	impacts.append({"pos": enemy.pos, "ttl": 0.25, "kill": enemy.hp <= 0})
 	if enemy.hp <= 0:
 		cash += int(enemy.get("reward", 4))
+		enemy_defeated.emit(enemy.pos, int(enemy.get("reward", 4)))
 		kills += 1
 		gameplay_event.emit("kill")
 

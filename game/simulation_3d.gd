@@ -1,15 +1,79 @@
 extends "res://game/main.gd"
 
-const LARGE_ROUTE = [Vector2(-120, 210), Vector2(220, 210), Vector2(220, 510), Vector2(500, 510), Vector2(500, 160), Vector2(800, 160), Vector2(800, 640), Vector2(1120, 640), Vector2(1120, 340), Vector2(1480, 340)]
-const LARGE_PADS = [Vector2(80, 140), Vector2(125, 340), Vector2(315, 300), Vector2(330, 600), Vector2(420, 400), Vector2(595, 265), Vector2(640, 70), Vector2(725, 390), Vector2(895, 255), Vector2(905, 505), Vector2(970, 735), Vector2(1205, 535), Vector2(1035, 420), Vector2(1240, 245), Vector2(1350, 440), Vector2(610, 600)]
+signal map_changed
+var map_seed = 0
+var route: Array = []
+var build_sites: Array = []
 var overdrive = 0.0
 var overdrive_cooldown = 0.0
 
 func get_route() -> Array:
-	return LARGE_ROUTE
+	return route
 
 func get_pads() -> Array:
-	return LARGE_PADS
+	return build_sites
+
+func route_for_seed(seed_value: int) -> Array:
+	var rng = RandomNumberGenerator.new()
+	rng.seed = seed_value
+	var result: Array = []
+	var z = rng.randf_range(150, 250)
+	result.append(Vector2(-110, z))
+	for column in 5:
+		var x = 150.0 + column * 270.0 + rng.randf_range(-35, 35)
+		result.append(Vector2(x, z))
+		z = rng.randf_range(500, 650) if column % 2 == 0 else rng.randf_range(150, 280)
+		result.append(Vector2(x, z))
+	result.append(Vector2(1500, z))
+	return result
+
+func generate_map(seed_value: int) -> void:
+	map_seed = seed_value
+	route = route_for_seed(seed_value)
+	build_sites.clear()
+	map_changed.emit()
+
+func road_distance(pos: Vector2, path: Array = []) -> float:
+	var points = route if path.is_empty() else path
+	var distance = INF
+	for i in range(points.size() - 1):
+		distance = minf(distance, pos.distance_to(Geometry2D.get_closest_point_to_segment(pos, points[i], points[i + 1])))
+	return distance
+
+func placement_reason(pos: Vector2) -> String:
+	if pos.x < 25 or pos.x > 1345 or pos.y < 65 or pos.y > 735:
+		return "Außerhalb des Baugebiets"
+	if road_distance(pos) < 56:
+		return "Abstand zur Straße halten"
+	for tower in towers:
+		if pos.distance_to(build_sites[tower.pad]) < 56:
+			return "Zu nah an einem anderen Turm"
+	if towers.size() >= 80:
+		return "Maximal 80 Türme"
+	if cash < WEAPONS[build_type].cost:
+		return "Nicht genügend Credits"
+	return ""
+
+func place_at(pos: Vector2) -> bool:
+	if paused or lives <= 0 or not placement_reason(pos).is_empty():
+		return false
+	var occupied = []
+	for tower in towers:
+		occupied.append(int(tower.pad))
+	var index = build_sites.size()
+	for i in build_sites.size():
+		if i not in occupied:
+			index = i
+			break
+	if index == build_sites.size():
+		build_sites.append(pos)
+	else:
+		build_sites[index] = pos
+	return super.build_at(index)
+
+func build_at(_pad: int) -> bool:
+	# The 3D game accepts world positions, never predefined build pads.
+	return false
 
 func activate_overdrive() -> void:
 	if paused or lives <= 0 or overdrive_cooldown > 0:
@@ -19,6 +83,7 @@ func activate_overdrive() -> void:
 	gameplay_event.emit("cryo")
 
 func reset_run() -> void:
+	generate_map(randi_range(1, 2000000000))
 	super.reset_run()
 	run_research = research_levels.duplicate()
 	has_started = true
@@ -73,10 +138,11 @@ var run_id = ""
 var awards: Dictionary = {}
 var persistence_message = ""
 var autosave_clock = 20.0
-var save_path = "user://run_v1.json"
+var save_path = "user://run_v2.json"
 var profile_path = "user://research_v1.json"
 
 func _ready() -> void:
+	generate_map(randi_range(1, 2000000000))
 	super._ready()
 	load_profile()
 	run_research = research_levels.duplicate()
@@ -224,7 +290,7 @@ func pack_state() -> Dictionary:
 		var color: Color = enemy.get("tint", Color.WHITE)
 		clean.tint = color.to_html()
 		enemy_data.append(clean)
-	return {"version": 1, "map": "colony_16", "run_id": run_id, "research": run_research, "cash": cash, "lives": lives, "wave": wave, "kills": kills, "remaining": remaining, "spawned": spawned, "spawn_clock": spawn_clock, "countdown": countdown, "speed": speed, "active": active, "build_type": build_type, "overdrive": overdrive, "overdrive_cooldown": overdrive_cooldown, "towers": tower_data, "enemies": enemy_data}
+	return {"version": 2, "map": "colony_free", "map_seed": map_seed, "sites": build_sites.map(func(pos): return [pos.x, pos.y]), "run_id": run_id, "research": run_research, "cash": cash, "lives": lives, "wave": wave, "kills": kills, "remaining": remaining, "spawned": spawned, "spawn_clock": spawn_clock, "countdown": countdown, "speed": speed, "active": active, "build_type": build_type, "overdrive": overdrive, "overdrive_cooldown": overdrive_cooldown, "towers": tower_data, "enemies": enemy_data}
 
 func save_run() -> Error:
 	if lives <= 0:
@@ -235,8 +301,16 @@ func save_run() -> Error:
 	return error
 
 func validate_state(data: Dictionary) -> bool:
-	if data.get("version") != 1 or data.get("map") != "colony_16" or not data.get("run_id") is String or (data.run_id.is_empty() or data.run_id.length() > 120):
+	if data.get("version") != 2 or data.get("map") != "colony_free" or not data.get("run_id") is String or (data.run_id.is_empty() or data.run_id.length() > 120):
 		return false
+	if not number_valid(data.get("map_seed"), 1, 2000000000) or int(data.map_seed) != data.map_seed:
+		return false
+	if not data.get("sites") is Array or data.sites.size() > 80:
+		return false
+	var saved_route = route_for_seed(int(data.map_seed))
+	for pos in data.sites:
+		if not pos is Array or pos.size() != 2 or not number_valid(pos[0], 25, 1345) or not number_valid(pos[1], 65, 735):
+			return false
 	var bounds = {"cash": [0, 1e12], "lives": [1, 30], "wave": [0, 10000], "kills": [0, 1e12], "remaining": [0, 100000], "spawned": [0, 100000], "spawn_clock": [-100, 10], "countdown": [-100, 30], "speed": [1, 2], "build_type": [0, 2], "overdrive": [0, 8], "overdrive_cooldown": [0, 45]}
 	for key in bounds:
 		if not number_valid(data.get(key), bounds[key][0], bounds[key][1]):
@@ -251,7 +325,7 @@ func validate_state(data: Dictionary) -> bool:
 	for level in data.research:
 		if not number_valid(level, 0, 5) or int(level) != level:
 			return false
-	if not data.get("towers") is Array or data.towers.size() > get_pads().size() or not data.get("enemies") is Array or data.enemies.size() > 1000:
+	if not data.get("towers") is Array or data.towers.size() > 80 or not data.get("enemies") is Array or data.enemies.size() > 1000:
 		return false
 	var occupied = []
 	for tower in data.towers:
@@ -260,7 +334,7 @@ func validate_state(data: Dictionary) -> bool:
 		for key in ["pad", "level", "kind", "spent", "cooldown"]:
 			if not tower.has(key):
 				return false
-		var limits = {"pad": [0, 15], "level": [1, 10000], "kind": [0, 2], "spent": [0, 1e12], "cooldown": [-100, 10], "branch": [-1, 1], "target": [0, 2], "aim": [-10, 10]}
+		var limits = {"pad": [0, 79], "level": [1, 10000], "kind": [0, 2], "spent": [0, 1e12], "cooldown": [-100, 10], "branch": [-1, 1], "target": [0, 2], "aim": [-10, 10]}
 		for key in limits:
 			var value = tower.get(key, -1 if key == "branch" else 0)
 			if not number_valid(value, limits[key][0], limits[key][1]):
@@ -271,13 +345,22 @@ func validate_state(data: Dictionary) -> bool:
 				return false
 		if tower.get("pad", -1) in occupied:
 			return false
+		if int(tower.pad) >= data.sites.size():
+			return false
+		var saved_position = Vector2(data.sites[int(tower.pad)][0], data.sites[int(tower.pad)][1])
+		if road_distance(saved_position, saved_route) < 56:
+			return false
+		for other in occupied:
+			var other_pos = Vector2(data.sites[int(other)][0], data.sites[int(other)][1])
+			if saved_position.distance_to(other_pos) < 56:
+				return false
 		occupied.append(tower.pad)
 	for enemy in data.enemies:
 		if not enemy is Dictionary or not enemy.get("pos") is Array or enemy.pos.size() != 2:
 			return false
 		if not number_valid(enemy.pos[0], -200, 1600) or not number_valid(enemy.pos[1], 0, 900):
 			return false
-		var limits = {"segment": [1, get_route().size() - 1], "hp": [0.000001, 1e100], "max_hp": [0.000001, 1e100], "pace": [0.1, 5], "armor": [0, 0.99], "reward": [0, 10000], "leak": [1, 30], "size": [0.1, 5], "slow_time": [0, 10], "slow_factor": [0.1, 1]}
+		var limits = {"segment": [1, saved_route.size() - 1], "hp": [0.000001, 1e100], "max_hp": [0.000001, 1e100], "pace": [0.1, 5], "armor": [0, 0.99], "reward": [0, 10000], "leak": [1, 30], "size": [0.1, 5], "slow_time": [0, 10], "slow_factor": [0.1, 1]}
 		for key in limits:
 			if not number_valid(enemy.get(key, 0.5 if key == "slow_factor" else null), limits[key][0], limits[key][1]):
 				return false
@@ -307,6 +390,10 @@ func restore_state(data: Dictionary) -> bool:
 		clean.tint = Color(clean.tint)
 		clean.segment = int(clean.segment)
 		new_enemies.append(clean)
+	map_seed = int(data.map_seed)
+	route = route_for_seed(map_seed)
+	build_sites = data.sites.map(func(pos): return Vector2(pos[0], pos[1]))
+	map_changed.emit()
 	towers = new_towers
 	enemies = new_enemies
 	has_started = true

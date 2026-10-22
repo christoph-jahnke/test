@@ -28,7 +28,7 @@ func check_progression() -> void:
 			sim.towers.clear()
 			sim.cash = 1000
 			sim.build_type = kind
-			assert(sim.build_at(0))
+			assert(sim.place_at(Vector2(80, 80)))
 			assert(not sim.specialize(choice), "Requires MK 3")
 			sim.towers[0].level = 3
 			var price: int = sim.branch_price(sim.towers[0])
@@ -112,7 +112,7 @@ func check_progression() -> void:
 	restored.set_process(false)
 	assert(restored.research_points == sim.research_points)
 	assert(restored.research_levels == sim.research_levels)
-	assert(restored.load_run() and restored.run_id == sim.run_id)
+	assert(restored.load_run() and restored.run_id == sim.run_id and restored.route == sim.route and restored.build_sites == sim.build_sites)
 	restored.queue_free()
 	await process_frame
 	# Autosave and defeat invalidation use the same state rules as manual save.
