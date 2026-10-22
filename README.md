@@ -1,4 +1,4 @@
-# Marine Outpost — 0.7
+# Marine Outpost — 0.8
 
 Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit freiem Turmbau, zufälligen Routen und Forschung zwischen Einsätzen.
 
@@ -6,19 +6,18 @@ Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit
 
 ZIP in einen neuen Ordner entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im Hauptmenü **Operation starten** wählen.
 
-## Neu in 0.7 — 20 eigenständige Modelle
+## Neu in 0.8
 
-- **9 Turmmodelle:** drei Grundwaffen und je zwei optisch eigenständige Spezialisierungen.
-- **4 Gegner:** Infizierter, Hetzer, Panzer-Infizierter und Titan mit eigener Anatomie und Panzerung.
-- **4 Wegarten:** Asphalt, Stahlgitter, Quarantäne und Ruinen; entlang der Zufallsroute eingesetzt.
-- **3 Kolonieobjekte:** Kommando-Bunker, Reaktor und Rasierdraht-Barrikade.
-- Echte GLB-Assets aus Blender mit abgeschrägten Kanten, PBR-Materialien und beweglichen Teilen. Bauvorschau zeigt ebenfalls das echte Modell.
-- Menü **Modellgalerie / 20 Assets** für Nahansichten und Zoom. Blutspuren und kurze Splittereffekte im Kampf.
+- **32 Modelle:** zwölf neue Umgebungsteile ergänzen die bisherigen Türme, Gegner und Straßen. Neue Kisten, Munition, Generatoren, Funkmast, Flutlicht, Rohrverteiler, Krater, Trümmer, Rover-Wrack, Feldlazarett, Ruine und Kontrolltor.
+- **Mattere, gebrauchte Oberflächen:** gemeinsame Lack- und Rauheitstexturen mit Kratzern und Pitting; zurückgenommene Reflexionen und überarbeiteter Boden.
+- Unterschiedliche Koloniebereiche ersetzen die gleichförmigen Reaktor- und Barrikadenreihen. Straßen erhalten seltener wiederholte Quarantänemuster.
+- **Jede neue Version mit eigener Spielvorschau.** `./tools/preview.sh` rendert und prüft Bilder sowie Metadaten; frühere Vorschauordner bleiben erhalten.
 
-![Marine-Nahansicht](docs/screenshots/model_marine.png)
-![20 Modelle](docs/screenshots/models_20.png)
+![Version 0.8 – arrangierte Spielszene aus dem Build](docs/previews/v0.8.0/battle.png)
 
-[Alle Modelle und Blender-Quelle](models/README.md)
+[Nähere Spielansicht](docs/previews/v0.8.0/closeup.png) · [Galerie mit 32 Assets](docs/previews/v0.8.0/gallery.png) · [Screenshot-Ablauf](docs/PREVIEWS.md)
+
+Das Menü **Modellgalerie / 32 Assets** zeigt alle Modelle einzeln mit Zoom und als Übersicht. [Asset-Liste und Blender-Quelle](models/README.md).
 
 ## Aus Version 0.6
 
@@ -28,8 +27,6 @@ ZIP in einen neuen Ordner entpacken, `project.godot` in Godot 4.6 importieren un
 - **Credits springen hoch:** Jeder Abschuss zeigt eine animierte goldene Münze und den tatsächlichen Betrag über dem Gegner.
 - Neuer Boden mit prozeduraler Struktur, beleuchtete Straßenränder, weniger Schilder, runde Zombie-Körper und neue Turmsockel. Kulissen stehen außerhalb des Baugebiets.
 
-![Freier Bau und Abschuss-Credits](docs/screenshots/battle.png)
-![Turm ausgewählt: Kontextansicht](docs/screenshots/inspector.png)
 
 ## Steuerung
 

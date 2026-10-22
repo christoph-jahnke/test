@@ -1,0 +1,17 @@
+{
+	"arranged_gameplay_fixture": true,
+	"assets": 32,
+	"engine": "4.6.3-stable (official)",
+	"frames": [
+		"menu",
+		"battle",
+		"inspector",
+		"closeup",
+		"gallery"
+	],
+	"height": 900,
+	"map_seed": 481516,
+	"renderer": "gl_compatibility",
+	"version": "0.8.0",
+	"width": 1440
+}

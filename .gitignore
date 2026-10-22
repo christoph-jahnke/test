@@ -2,3 +2,5 @@
 build/
 
 docs/screenshots/*.import
+
+docs/previews/**/*.import

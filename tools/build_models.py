@@ -265,6 +265,101 @@ def prop(kind):
    link('Barb',(-1.2+i*.2,-.2,1.25),(-1.2+i*.2,-.29,1.36),.009,'steel')
   scar((.5,.28,.95),2)
 
+def environment_prop(kind):
+ if kind==0: # Expedition supply crate.
+  box('Shockproof case',(0,0,.36),(1.1,.72,.7),'armor',bevel=.075)
+  box('Lid',(0,0,.75),(1.15,.77,.13),'steel',bevel=.04)
+  for x in [-.4,.4]:
+   box('Reinforced strap',(x,0,.39),(.09,.8,.76),'dark',bevel=.02)
+   box('Latch',(x,.43,.55),(.12,.07,.18),'copper',bevel=.018)
+  text('Supply stencil',(0,0,.82),'SUPPLY',.15)
+ elif kind==1: # Open munitions rack.
+  box('Ammo cage',(0,0,.25),(1.15,.8,.5),'dark',bevel=.045)
+  for i in range(5):
+   cyl('Shell',(-.42+i*.21,0,.62),.08,.65,'copper',r2=.045)
+   cyl('Shell cap',(-.42+i*.21,0,.98),.05,.12,'orange',r2=0)
+  for side in [-1,1]:box('Rack handle',(side*.63,0,.3),(.1,.7,.13),'steel')
+ elif kind==2: # Diesel generator.
+  box('Skid',(0,0,.12),(1.7,1.05,.2),'dark',bevel=.04)
+  box('Generator housing',(0,0,.62),(1.4,.88,.85),'armor',bevel=.09)
+  for i in range(7):box('Vent',(-.45+i*.15,.451,.63),(.06,.025,.48),'dark',bevel=.006)
+  cyl('Exhaust',(.45,-.2,1.24),.07,.65,'steel')
+  cyl('Silencer',(.45,-.2,1.32),.11,.26,'dark')
+  box('Control box',(-.49,-.42,.83),(.28,.1,.25),'steel')
+  box('Status lamp',(-.49,-.48,.86),(.16,.02,.045),'cyan',bevel=.005)
+ elif kind==3: # Communications antenna.
+  box('Antenna platform',(0,0,.1),(1.5,1.5,.2),'concrete',bevel=.04)
+  for side in [-1,1]:
+   link('Mast brace',(side*.55,0,.2),(0,0,2.3),.035,'steel')
+  cyl('Antenna mast',(0,0,1.7),.07,3.2,'steel')
+  for z in [1.9,2.5,3.1]:
+   link('Receiver',(-.55,0,z),(.55,0,z),.025,'steel')
+  ball('Red beacon',(0,0,3.4),(.075,.075,.075),'red')
+ elif kind==4: # Dual floodlight with caged luminaires.
+  box('Lamp base',(0,0,.1),(.9,.9,.2),'dark',bevel=.05)
+  cyl('Lamp mast',(0,0,1.5),.065,2.8,'steel')
+  box('Luminaire crossbar',(0,0,2.85),(1.25,.15,.12),'dark')
+  for side in [-1,1]:
+   box('Floodlight case',(side*.43,.06,2.87),(.54,.3,.34),'armor',bevel=.045)
+   box('Floodlight lens',(side*.43,.221,2.87),(.42,.02,.23),'ivory',bevel=.025)
+   for i in range(3):box('Lens guard',(side*.43-.14+i*.14,.243,2.87),(.018,.014,.26),'steel',bevel=.003)
+ elif kind==5: # Exposed pipe manifold.
+  box('Pipe footing',(0,0,.1),(2.3,1.2,.18),'concrete',bevel=.04)
+  for side in [-1,1]:
+   link('Pipe',(side*.6,-.45,.42),(side*.6,.45,.42),.14,'copper')
+   torus('Valve wheel',(side*.6,0,.73),.18,.023,'red')
+   cyl('Valve stem',(side*.6,0,.56),.04,.3,'steel')
+   for y in [-.37,.37]:cyl('Flange',(side*.6,y,.42),.2,.07,'steel',axis=(0,1,0))
+  link('Junction',(-.6,0,.42),(.6,0,.42),.14,'copper')
+ elif kind==6: # Ground crater, low profile; never a hidden build obstacle.
+  cyl('Scorched basin',(0,0,.008),1.05,.012,'dark',vertices=20)
+  for i in range(9):
+   a=(i+random.uniform(-.25,.25))*math.tau/9;r=random.uniform(.72,1.02)
+   box('Shattered impact rim',(math.cos(a)*r,math.sin(a)*r,.03),(random.uniform(.16,.38),random.uniform(.1,.24),.045),'concrete',bevel=.018,rot=(0,0,a+random.uniform(-.4,.4)))
+  for i in range(8):
+   a=i*2.4;box('Impact splinter',(math.cos(a)*.58,math.sin(a)*.58,.026),(.05,.31,.02),'steel',rot=(0,0,a))
+ elif kind==7: # Rubble, deliberately low enough for a turret deck to cover.
+  for i in range(13):
+   x=random.uniform(-.75,.75);y=random.uniform(-.5,.5)
+   box('Broken slab',(x,y,.025),(.15+random.random()*.25,.12+random.random()*.22,.04),'concrete',bevel=.025,rot=(0,0,random.random()*3))
+  for i in range(4):link('Rebar',(-.55+i*.3,-.4,.035),(-.35+i*.3,.4,.035),.014,'copper')
+ elif kind==8: # Burned utility rover.
+  box('Chassis',(0,0,.5),(1.25,2.3,.3),'dark',bevel=.1)
+  box('Cab',(0,.45,.95),(1.18,1.15,.8),'armor',bevel=.12,rot=(.06,0,.04))
+  box('Smashed windshield',(0,1.035,1.08),(.9,.025,.37),'dark',bevel=.03)
+  for side in [-1,1]:
+   for y in [-.75,.75]:
+    cyl('Rover tire',(side*.65,y,.38),.3,.22,'rubber',axis=(1,0,0))
+    cyl('Wheel hub',(side*.78,y,.38),.13,.035,'steel',axis=(1,0,0))
+  box('Burned bed',(0,-.7,.78),(1.15,.9,.35),'concrete',bevel=.06)
+  box('Bent hood',(0,1.13,.78),(1.05,.62,.06),'steel',bevel=.025,rot=(.28,.08,0))
+  for i in range(5):box('Blast scar',(-.4+i*.16,-.8,.97),(.06,.45,.015),'dark',rot=(0,0,.3))
+ elif kind==9: # Field medical shelter.
+  box('Shelter platform',(0,0,.1),(2.6,2.6,.2),'dark',bevel=.05)
+  box('Shelter body',(0,0,.9),(2.3,2.2,1.6),'cloth',bevel=.15)
+  box('Roof armor',(0,0,1.77),(2.55,2.4,.18),'armor',bevel=.08)
+  box('Entrance',(0,1.12,.78),(1.1,.025,1.35),'dark',bevel=.06)
+  box('Medical cross H',(.76,1.13,1.25),(.4,.025,.12),'ivory',bevel=.008)
+  box('Medical cross V',(.76,1.14,1.25),(.12,.025,.4),'ivory',bevel=.008)
+  for side in [-1,1]:box('Shelter rib',(side*1.2,0,1),(.08,2.3,1.7),'steel',bevel=.025)
+ elif kind==10: # Ruined hab, open side and jagged upper walls.
+  box('Hab slab',(0,0,.1),(3.2,2.7,.2),'concrete',bevel=.04)
+  box('Hab rear',(0,-1.15,1.08),(3,.22,2),'armor',bevel=.06)
+  for side in [-1,1]:
+   box('Hab side',(side*1.38,0,.8),(.22,2.3,1.4),'concrete',bevel=.045)
+   for i in range(4):
+    z=1.5+random.random()*.3
+    box('Broken wall crown',(side*1.38,-.85+i*.54,z),(.22,.4,.3),'armor',bevel=.04,rot=(0,0,random.uniform(-.2,.2)))
+  box('Warped roof',(-.6,-.5,2.04),(1.7,1.5,.14),'steel',bevel=.04,rot=(0,.17,.08))
+  for i in range(5):box('Floor debris',(-.9+i*.4,.3,.25),(.3,.45,.16),'concrete',rot=(0,.1,i*.7))
+ elif kind==11: # Checkpoint arch.
+  for side in [-1,1]:
+   box('Checkpoint foot',(side*1.25,0,.16),(.75,1.1,.3),'concrete',bevel=.06)
+   box('Checkpoint column',(side*1.25,0,1.25),(.4,.55,2.3),'armor',bevel=.06)
+   box('Gate signal',(side*1.25,.29,1.9),(.13,.035,.3),'red',bevel=.012)
+  box('Checkpoint lintel',(0,0,2.5),(3,.65,.36),'steel',bevel=.08)
+  text('Checkpoint warning',(0,.34,2.42),'QUARANTINE',.18,'ivory',rot=(math.pi/2,0,0))
+
 def export(name):
  # Apply bevels and consolidate by rigid part/material. Preserve named limb pivots.
  bpy.ops.object.select_all(action='DESELECT')
@@ -291,16 +386,18 @@ def clear():
  bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
  root=empty('Model')
 
-names=['01_marine_sentinel','02_mortar_bulwark','03_cryo_prism','04_sniper_lancer','05_assault_reaper','06_siege_judgement','07_cluster_hydra','08_deepfreeze_zero','09_fieldcontrol_pulse','10_zombie_walker','11_zombie_runner','12_zombie_armored','13_zombie_titan','14_road_asphalt','15_road_steel','16_road_quarantine','17_road_ruined','18_bunker_command','19_reactor','20_barricade']
+names=['01_marine_sentinel','02_mortar_bulwark','03_cryo_prism','04_sniper_lancer','05_assault_reaper','06_siege_judgement','07_cluster_hydra','08_deepfreeze_zero','09_fieldcontrol_pulse','10_zombie_walker','11_zombie_runner','12_zombie_armored','13_zombie_titan','14_road_asphalt','15_road_steel','16_road_quarantine','17_road_ruined','18_bunker_command','19_reactor','20_barricade','21_supply_crate','22_ammo_cache','23_generator_aux','24_comms_mast','25_floodlight','26_pipe_junction','27_blast_crater','28_rubble_pile','29_wreck_rover','30_medical_shelter','31_habitat_ruined','32_gate_checkpoint']
 only = next((a.split('=',1)[1] for a in sys.argv if a.startswith('--only=')), '')
-selected = set(int(x) for x in only.split(',')) if only else set(range(1,21))
+selected = set(int(x) for x in only.split(',')) if only else set(range(1,len(names)+1))
 for index,name in enumerate(names):
  if index+1 not in selected: continue
+ random.seed(1700+index)
  clear()
  if index<3:tower(index,-1)
  elif index<9:tower((index-3)//2,(index-3)%2)
  elif index<13:zombie(index-9)
  elif index<17:road(index-13)
- else:prop(index-17)
+ elif index<20:prop(index-17)
+ else:environment_prop(index-20)
  export(name)
 print('FINISHED:',len(selected),'ORIGINAL ASSETS')

@@ -83,13 +83,13 @@ func _ready() -> void:
 	environment.environment.background_color = Color("101b2a")
 	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.environment.ambient_light_color = Color("6e93bd")
-	environment.environment.ambient_light_energy = 0.65
+	environment.environment.ambient_light_energy = 0.52
 	var sky = Sky.new()
 	var atmosphere = ProceduralSkyMaterial.new()
 	atmosphere.sky_top_color = Color("23364e")
-	atmosphere.sky_horizon_color = Color("8d9aa6")
+	atmosphere.sky_horizon_color = Color("52667a")
 	atmosphere.ground_bottom_color = Color("151c26")
-	atmosphere.ground_horizon_color = Color("5b6470")
+	atmosphere.ground_horizon_color = Color("363b43")
 	sky.sky_material = atmosphere
 	environment.environment.sky = sky
 	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
@@ -98,7 +98,7 @@ func _ready() -> void:
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, -30, 0)
 	sun.light_color = Color("ffd6a0")
-	sun.light_energy = 1.35
+	sun.light_energy = 1.1
 	sun.shadow_enabled = true
 	add_child(sun)
 	camera = Camera3D.new()
@@ -149,24 +149,41 @@ func _ready() -> void:
 	process_priority = 10
 	get_tree().auto_accept_quit = false
 
-func ground_material() -> StandardMaterial3D:
-	var result = StandardMaterial3D.new()
-	result.roughness = 1
-	var noise = FastNoiseLite.new()
-	noise.seed = sim.map_seed
-	noise.frequency = 0.45
-	noise.fractal_octaves = 4
-	var texture = NoiseTexture2D.new()
-	texture.width = 512
-	texture.height = 512
-	texture.noise = noise
-	texture.seamless = true
-	var gradient = Gradient.new()
-	gradient.set_color(0, Color("14232f"))
-	gradient.set_color(1, Color("263b47"))
-	texture.color_ramp = gradient
-	result.albedo_texture = texture
+func ground_material() -> ShaderMaterial:
+	var shader = Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode diffuse_burley;
+varying vec3 world_pos;
+uniform float ground_seed = 0.0;
+float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
+float noise2(vec2 p) {
+ vec2 i = floor(p); vec2 f = fract(p); vec2 u = f*f*(3.0-2.0*f);
+ return mix(mix(hash2(i),hash2(i+vec2(1,0)),u.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),u.x),u.y);
+}
+void vertex() { world_pos = (MODEL_MATRIX * vec4(VERTEX,1.0)).xyz; }
+void fragment() {
+ vec2 p = world_pos.xz + vec2(ground_seed,ground_seed*0.37);
+ float dust = noise2(p*0.6);
+ float grain = noise2(p*38.0);
+ float scars = smoothstep(0.60,0.78,noise2(p*2.0));
+ vec3 soil = mix(vec3(0.065,0.082,0.095),vec3(0.125,0.112,0.090),dust);
+ ALBEDO = soil * (0.84 + grain*0.28) * (1.0 - scars*0.18);
+ ROUGHNESS = 0.96;
+}
+"""
+	var result = ShaderMaterial.new()
+	result.shader = shader
+	result.set_shader_parameter("ground_seed", float(sim.map_seed % 1000))
 	return result
+
+func scenery(index: int, at: Vector3, angle: float = 0.0, scale_value: float = 1.0) -> Node3D:
+	var model = Assets.create(index)
+	terrain.add_child(model)
+	model.position = at
+	model.rotation.y = angle
+	model.scale *= scale_value
+	return model
 
 func build_colony() -> void:
 	for credit in floating_credits:
@@ -194,39 +211,47 @@ func build_colony() -> void:
 		var offset = 0.0
 		while offset < length - 0.001:
 			var span = minf(2.0, length - offset)
-			var tile = Assets.create(13 + posmod(i + sim.map_seed, 4))
+			var kind = [0, 0, 1, 3][posmod(i + sim.map_seed, 4)]
+			if i % 4 == 2 and absf(offset - length / 2) < 2:
+				kind = 2
+			var tile = Assets.create(13 + kind)
 			terrain.add_child(tile)
 			tile.position = a.move_toward(b, offset + span / 2) + Vector3(0, 0.18, 0)
 			tile.rotation.y = shoulder.rotation.y
 			tile.scale.z = span / 2
 			offset += span
 
-	# All solid scenery is outside the freely buildable field.
+	# Raised scenery stays beyond the free-build bounds; only flat ground damage is inside.
 	var rng = RandomNumberGenerator.new()
 	rng.seed = sim.map_seed + 42
-	for i in 9:
+	var skyline = [30, 22, 18, 29, 23, 24, 30, 22, 18]
+	for i in skyline.size():
 		var x = -26.0 + i * 6.4
-		var reactor = Assets.create(18)
-		terrain.add_child(reactor)
-		reactor.position = Vector3(x, 0, -13.7)
-		reactor.scale = Vector3.ONE * rng.randf_range(1.1, 1.65)
-
-	for i in 30:
-		var x = rng.randf_range(-27, 27)
-		var z = rng.randf_range(11.4, 14.5) if i % 2 == 0 else rng.randf_range(-15.5, -12.2)
-		var rock = cylinder(terrain, Vector3(x, 0.12, z), rng.randf_range(0.2, 0.65), rng.randf_range(0.3, 0.9), Color("56606b"))
-		rock.rotation.z = rng.randf_range(-0.5, 0.5)
-	for x in range(-25, 27, 6):
-		var barrier = Assets.create(19)
-		terrain.add_child(barrier)
-		barrier.position = Vector3(x, 0, 13)
-
+		scenery(skyline[i], Vector3(x, 0, -13.4), PI + rng.randf_range(-0.16, 0.16))
+		scenery(20 if i % 2 == 0 else 21, Vector3(x + 1.6, 0, -11.8), rng.randf_range(-0.4, 0.4), 0.8)
+	var foreground = [28, 19, 29, 25, 20, 19, 22, 21]
+	for i in foreground.size():
+		scenery(foreground[i], Vector3(-25 + i * 7.0, 0, 12.5), PI + rng.randf_range(-0.3, 0.3))
+	for x in [-21.0, 13.0]:
+		scenery(24, Vector3(x, 0, 11.65))
+		var lamp = OmniLight3D.new()
+		lamp.position = Vector3(x, 2.6, 11.4)
+		lamp.light_color = Color("b8c8d0")
+		lamp.omni_range = 5
+		lamp.light_energy = 0.6
+		terrain.add_child(lamp)
+	# Scorch marks and shallow rubble do not create invisible building restrictions.
+	for i in 18:
+		var pos = Vector2(rng.randf_range(35, 1330), rng.randf_range(80, 720))
+		if sim.road_distance(pos) > 85:
+			scenery(26 if i % 3 == 0 else 27, point(pos, 0.002), rng.randf_range(0, TAU), rng.randf_range(0.6, 1.1))
 	# Entry anomaly and the command bunker move with the random lane.
 	var entry = point(path[0] + Vector2(90, 0))
+	scenery(31, entry, PI / 2)
 	var portal = TorusMesh.new()
 	portal.inner_radius = 0.9
 	portal.outer_radius = 1.15
-	var gate = shape(terrain, entry + Vector3(0, 1.25, 0), portal, Color("b74e68"), true)
+	var gate = shape(terrain, entry + Vector3(-1.7, 1.25, 0), portal, Color("b74e68"), true)
 	gate.rotation.z = PI / 2
 	var base = point(path[-1] - Vector2(80, 0))
 	var bunker = Assets.create(17)

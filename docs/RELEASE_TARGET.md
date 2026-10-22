@@ -1,6 +1,6 @@
 # Qualitätsziel: ein vollständiges Spiel für etwa 15 €
 
-Der Preis ist eine Positionierung, kein Nachweis für Qualität. Version 0.7 ist ein spielbarer Entwicklungsstand und noch kein verkaufsfertiges Produkt.
+Der Preis ist eine Positionierung, kein Nachweis für Qualität. Version 0.8 ist ein spielbarer Entwicklungsstand und noch kein verkaufsfertiges Produkt.
 
 ## Versprechen an den Spieler
 
@@ -14,7 +14,7 @@ Eine lesbare, reaktionsschnelle Sci-Fi-Verteidigung mit endlosen Angriffen und E
 - Drei Forschungszweige für folgende Einsätze; lokale Run-Speicherung mit Autosave und Sicherung.
 - Haupt-/Pausenmenü, Einsatzbriefing, Ergebnisanzeige, Kontext-UI für Bauen und ausgewählte Türme.
 - WASD-Kamera, Zoom, Vollbild, gespeicherte Lautstärke- und Schatteneinstellungen.
-- 20 originale Blender/GLB-Modelle mit PBR-Materialien und eigener Modellgalerie; sechs synthetisierte Soundeffekte.
+- 32 originale Blender/GLB-Modelle mit PBR-Materialien und eigener Modellgalerie; sechs synthetisierte Soundeffekte.
 
 ## Vor einem Verkaufsrelease erforderlich
 
@@ -37,4 +37,4 @@ Eine lesbare, reaktionsschnelle Sci-Fi-Verteidigung mit endlosen Angriffen und E
 3. Die neuen Upgrade-Verzweigungen und Forschung spielen, dann Wirtschaft und Schwierigkeit mit wiederholten Runs abstimmen.
 4. Erst mit stabilem Einzelspieler-Kern Multiplayer und Steam vorbereiten.
 
-Die Screenshots unter `screenshots/` zeigen den echten Build. `battle.png`, `inspector.png` und `research.png` verwenden arrangierte Testsituationen, um Spezialisierungen, Forschung und mehrere Gegnertypen gleichzeitig zu zeigen; es ist keine Aussage zur in einem normalen Run erreichten Ausstattung. Sound ist technisch eingebunden, wurde in der Cloud jedoch nicht über Lautsprecher beurteilt.
+Die aktuelle Vorschau unter `previews/v0.8.0/` zeigt den tatsächlichen Renderer der Version 0.8. Die Bilder unter `screenshots/` dokumentieren frühere Entwicklungsstände. `battle.png`, `inspector.png` und `research.png` verwenden arrangierte Testsituationen, um Spezialisierungen, Forschung und mehrere Gegnertypen gleichzeitig zu zeigen; es ist keine Aussage zur in einem normalen Run erreichten Ausstattung. Sound ist technisch eingebunden, wurde in der Cloud jedoch nicht über Lautsprecher beurteilt.

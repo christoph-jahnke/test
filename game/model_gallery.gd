@@ -62,18 +62,24 @@ func _ready() -> void:
 	style.set_corner_radius_all(6)
 	index_panel.add_theme_stylebox_override("panel", style)
 	ui.add_child(index_panel)
+	var scroll = ScrollContainer.new()
+	scroll.position = Vector2(8, 8)
+	scroll.size = Vector2(324, 694)
+	index_panel.add_child(scroll)
+	var choices = VBoxContainer.new()
+	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(choices)
 	for i in Assets.IDS.size():
 		var button = Button.new()
-		button.position = Vector2(10, 9 + i * 34)
-		button.size = Vector2(320, 30)
+		button.custom_minimum_size = Vector2(302, 30)
 		button.text = "%02d / %s" % [i + 1, Assets.NAMES[i]]
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.add_theme_font_size_override("font_size", 13)
 		button.pressed.connect(show_model.bind(i))
-		index_panel.add_child(button)
-	make_button(ui, "← Vorheriges", Vector2(385, 834), func(): show_model(posmod(selection - 1, 20)))
-	make_button(ui, "Nächstes →", Vector2(640, 834), func(): show_model(posmod(selection + 1, 20)))
-	make_button(ui, "Alle 20 ansehen", Vector2(895, 834), show_all)
+		choices.add_child(button)
+	make_button(ui, "← Vorheriges", Vector2(385, 834), func(): show_model(posmod(selection - 1, Assets.IDS.size())))
+	make_button(ui, "Nächstes →", Vector2(640, 834), func(): show_model(posmod(selection + 1, Assets.IDS.size())))
+	make_button(ui, "Alle %d ansehen" % Assets.IDS.size(), Vector2(895, 834), show_all)
 	make_button(ui, "Zurück zum Spiel", Vector2(1150, 834), func(): get_tree().change_scene_to_file("res://game/world_3d.tscn"))
 	show_model(0)
 
@@ -123,33 +129,34 @@ func show_all() -> void:
 	index_panel.visible = false
 	all_models = true
 	clear_display()
-	for index in 20:
+	for index in Assets.IDS.size():
 		var model = Assets.create(index)
 		display.add_child(model)
-		model.position = Vector3((index % 5 - 2) * 4.3, 0, (index / 5 - 1.5) * 4.6)
+		model.rotation.y = PI
+		model.position = Vector3((index % 8 - 3.5) * 4.3, 0, (index / 8 - 1.5) * 4.6)
 		pedestal(model.position, 1.85)
 		if index >= 17:
 			model.scale *= 0.7
 		var label = Label3D.new()
-		label.text = "%02d / %s" % [index + 1, Assets.NAMES[index]]
+		label.text = "%02d / %s" % [index + 1, Assets.NAMES[index].split(" / ")[0]]
 		label.position = model.position + Vector3(0, 0.1, 1.7)
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.font_size = 32
 		label.pixel_size = 0.008
 		label.modulate = Color("b4ceda")
 		display.add_child(label)
-	camera.size = 33
+	camera.size = 42
 	camera.position = Vector3(0, 26, 22)
 	camera.look_at(Vector3(0, 0, 0))
-	title.text = "MODELLGALERIE / 20 ORIGINALE ASSETS"
-	detail.text = "9 Türme · 4 Gegner · 4 Wegarten · 3 Kolonieobjekte"
+	title.text = "MODELLGALERIE / %d ORIGINALE ASSETS" % Assets.IDS.size()
+	detail.text = "9 Türme · 4 Gegner · 4 Wegarten · 15 Kolonieobjekte"
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_RIGHT:
-			show_model(posmod(selection + 1, 20))
+			show_model(posmod(selection + 1, Assets.IDS.size()))
 		elif event.keycode == KEY_LEFT:
-			show_model(posmod(selection - 1, 20))
+			show_model(posmod(selection - 1, Assets.IDS.size()))
 		elif event.keycode == KEY_ESCAPE:
 			get_tree().change_scene_to_file("res://game/world_3d.tscn")
 	if event is InputEventMouseButton and event.pressed:

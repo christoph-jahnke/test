@@ -2,9 +2,9 @@
 
 Ziel: Windows, Top-down-3D, langfristig Steam. Multiplayer: vier getrennte Verteidigungslanes auf einer gemeinsamen Karte, 30 Leben je Spieler; Geld entweder für Verteidigung oder offensive Gegner-Sends ausgeben.
 
-## Stand 0.7
+## Stand 0.8
 
-Freie Turmplatzierung, zufällige Route je Run, kontextabhängige Bau-/Turmoberfläche, Abschuss-Credits. Automatische Wellen, drei Turmrollen, sechs Spezialisierungen, drei Zielprioritäten, Sprinter/Panzer/Titans, Forschung und lokales Speichern/Fortsetzen. Kamera, Menüs und Einstellungen vorhanden. 20 eigenständige Blender/GLB-Modelle für neun Türme, vier Gegner, vier Wegarten und drei Kolonieobjekte sind integriert; eine Modellgalerie ermöglicht Nahansichten.
+Freie Turmplatzierung, zufällige Route je Run, kontextabhängige Bau-/Turmoberfläche, Abschuss-Credits. Automatische Wellen, drei Turmrollen, sechs Spezialisierungen, drei Zielprioritäten, Sprinter/Panzer/Titans, Forschung und lokales Speichern/Fortsetzen. Kamera, Menüs und Einstellungen vorhanden. 32 eigenständige Blender/GLB-Modelle für neun Türme, vier Gegner, vier Wegarten und fünfzehn Kolonieobjekte sind integriert; eine Modellgalerie ermöglicht Nahansichten. Gebrauchsspuren und mattere Materialien sowie abwechslungsreichere Kulissen sind umgesetzt. Ab 0.8 gehört eine versionsbezogene Spielvorschau zu jedem Release.
 
 ## Nächste Etappen
 

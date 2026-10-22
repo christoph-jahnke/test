@@ -1,4 +1,4 @@
-# Asset-Pack 01 — 20 originale GLB-Modelle
+# Asset-Packs 01–02 — 32 originale GLB-Modelle
 
 Alle Modelle werden aus dem mitgelieferten Blender-Quellskript erzeugt. Keine externen Modelle oder Textur-Downloads. Godot importiert die GLBs direkt; Blender ist zum Spielen nicht erforderlich.
 
@@ -24,6 +24,18 @@ Alle Modelle werden aus dem mitgelieferten Blender-Quellskript erzeugt. Keine ex
 | 18 | Kommando-Bunker | Schweres Tor, Lüftung, Stencil und Antenne |
 | 19 | Reaktor R-09 | Gestapelte Ringe, Core-Fenster und Kühlrohre |
 | 20 | Barrikade | Betonkörper, Hazard-Lackierung und echte Rasierdraht-Geometrie |
+| 21 | Versorgungskiste | Verschlüsse, Tragegurte, Materialnummer |
+| 22 | Munitionslager | Offenes Granatenrack |
+| 23 | Hilfsgenerator | Lüftung, Abgasrohr, Schalttafel |
+| 24 | Funkmast | Verstrebungen, Antennen, Beacon |
+| 25 | Flutlicht | Doppel-Scheinwerfer mit Schutzkäfig |
+| 26 | Rohrverteiler | Ventile, Flansche und Rohrbrücken |
+| 27 | Einschlagkrater | Flache Rußmulde und gebrochene Randstücke |
+| 28 | Trümmerfeld | Flache Schuttplatten und freiliegende Bewehrung |
+| 29 | Rover-Wrack | Verbrannter Wagen, verbogene Haube und beschädigte Scheibe |
+| 30 | Feldlazarett | Sanitätsunterkunft mit Kreuz und Trägern |
+| 31 | Habitat-Ruine | Offene Gebäudeseite und gebrochene Dachkante |
+| 32 | Kontrolltor | Quarantäne-Bogen und Signalleuchten |
 
 ## Bearbeiten / reproduzieren
 
@@ -35,9 +47,9 @@ blender -b --threads 4 --python tools/build_models.py
 blender -b --threads 4 --python tools/build_models.py -- --only=5,10,11,12,13
 ```
 
-Das Skript überschreibt die gewählten generierten GLBs. Eigene GLB-Änderungen vorher sichern. Ein vollständiger Export erzeugt alle 20 Dateien. Die Materialien sind eingebettet, mit Grundfarbe, Metallanteil, Rauheit und ausgewählten Emissionsflächen. Kanten sind abgeschrägt und Normalen gewichtet. Modellteile sind nach Material und beweglichem Bauteil zusammengefasst.
+Das Skript überschreibt die gewählten generierten GLBs. Eigene GLB-Änderungen vorher sichern. Ein vollständiger Export erzeugt alle 32 Dateien. Die Grundmaterialien sind eingebettet, mit Grundfarbe, Metallanteil, Rauheit und ausgewählten Emissionsflächen. Ab 0.8 ergänzt der Asset-Katalog gemeinsam verwendete, prozedurale Lack- und Rauheitstexturen mit Kratzern und Pitting. Leuchtflächen bleiben ausgespart. Die mattere Oberflächenbehandlung verändert auch die bisherigen 20 Modelle. Kanten sind abgeschrägt und Normalen gewichtet. Modellteile sind nach Material und beweglichem Bauteil zusammengefasst.
 
-Godot erzeugt beim Import automatisch LODs und Schatten-Meshes. Die 20 Modelle haben zusammen ungefähr 167.000 Dreiecke im höchsten Detailgrad. Instanzen im Spiel vervielfachen die tatsächlich sichtbare Geometrie; diese Zahl ist kein Performance-Nachweis für große Horden.
+Godot erzeugt beim Import automatisch LODs und Schatten-Meshes. Die 32 Modelle haben zusammen knapp 200.000 Dreiecke im höchsten Detailgrad. Instanzen im Spiel vervielfachen die tatsächlich sichtbare Geometrie; diese Zahl ist kein Performance-Nachweis für große Horden.
 
 ## Integration
 
@@ -47,6 +59,6 @@ Benannte `Head`- und `Rotor`-Knoten ermöglichen Zielen und Gatling-Rotation. Ge
 
 Die Baukarten zeigen kleine, direkt aus den GLBs gerenderte Portraits. `tools/capture_portraits.gd` erzeugt sie mit einer grafischen Godot-Instanz erneut.
 
-Im Spielmenü öffnet **Modellgalerie / 20 Assets** die Nahansicht mit Zoom, Einzelwahl und Gesamtansicht. Vor dem Wechsel wird ein laufender Run gespeichert. GLBs können auch direkt in Godot oder Blender geöffnet werden.
+Im Spielmenü öffnet **Modellgalerie / 32 Assets** die Nahansicht mit Zoom, Einzelwahl und Gesamtansicht. Vor dem Wechsel wird ein laufender Run gespeichert. GLBs können auch direkt in Godot oder Blender geöffnet werden.
 
 Die Modelle sind ein erster stilisierter Produktionsschritt. Handgemalte/gebakte Texturen, hochwertige Skinning-Animationen und gründliche Windows-Performance-Tests bleiben ausstehend.

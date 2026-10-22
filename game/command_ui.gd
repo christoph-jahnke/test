@@ -168,8 +168,8 @@ func build_menu() -> void:
 	save_button = button_at(card, "Einsatz speichern", Vector2(44, 552), Vector2(215, 44), manual_save)
 	load_button = button_at(card, "Spielstand laden", Vector2(274, 552), Vector2(220, 44), manual_load)
 	button_at(card, "FORSCHUNG / permanente Verbesserungen", Vector2(44, 610), Vector2(450, 48), show_research)
-	button_at(card, "Modellgalerie / 20 Assets", Vector2(624, 552), Vector2(450, 48), open_gallery)
-	label_at(card, "ENTWICKLUNGSVERSION 0.7  /  SINGLEPLAYER\nOriginale Low-Poly-Grafik und synthetisierte Effekte.\nMultiplayer und Steam-Integration sind noch in Planung.", Vector2(44, 684), 14, Color("7f9aac"))
+	button_at(card, "Modellgalerie / 32 Assets", Vector2(624, 552), Vector2(450, 48), open_gallery)
+	label_at(card, "ENTWICKLUNGSVERSION 0.8  /  SINGLEPLAYER\nOriginale Low-Poly-Grafik und synthetisierte Effekte.\nMultiplayer und Steam-Integration sind noch in Planung.", Vector2(44, 684), 14, Color("7f9aac"))
 
 func apply_settings() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(master_volume, 0.0001)))
