@@ -33,6 +33,15 @@ func run_checks() -> void:
 	assert(world.sim.towers.size() == 6)
 	world._process(0.01)
 	assert(world.units.get_child_count() == 6)
+	# Specialization must change actual imported geometry, including the gun rotor.
+	world.sim.selected = 0
+	world.sim.towers[0].level = 3
+	assert(world.sim.specialize(1))
+	world.sim.towers[0].cooldown = 1
+	world._process(0.01)
+	await process_frame
+	assert(world.sim.towers[0].model.get_meta("asset_id") == "05_assault_reaper")
+	assert(world.sim.towers[0].model.find_child("Rotor", true, false) != null)
 	# Clicking a body switches to its inspector; deselection restores the shop.
 	world.sim.selected = -1
 	world.select_at_screen(world.camera.unproject_position(world.point(placements[0], 0.8)))

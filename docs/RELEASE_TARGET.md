@@ -1,6 +1,6 @@
 # Qualitätsziel: ein vollständiges Spiel für etwa 15 €
 
-Der Preis ist eine Positionierung, kein Nachweis für Qualität. Version 0.6 ist ein spielbarer Entwicklungsstand und noch kein verkaufsfertiges Produkt.
+Der Preis ist eine Positionierung, kein Nachweis für Qualität. Version 0.7 ist ein spielbarer Entwicklungsstand und noch kein verkaufsfertiges Produkt.
 
 ## Versprechen an den Spieler
 
@@ -14,7 +14,7 @@ Eine lesbare, reaktionsschnelle Sci-Fi-Verteidigung mit endlosen Angriffen und E
 - Drei Forschungszweige für folgende Einsätze; lokale Run-Speicherung mit Autosave und Sicherung.
 - Haupt-/Pausenmenü, Einsatzbriefing, Ergebnisanzeige, Kontext-UI für Bauen und ausgewählte Türme.
 - WASD-Kamera, Zoom, Vollbild, gespeicherte Lautstärke- und Schatteneinstellungen.
-- Originale einfache 3D-Modelle und sechs synthetisierte Soundeffekte.
+- 20 originale Blender/GLB-Modelle mit PBR-Materialien und eigener Modellgalerie; sechs synthetisierte Soundeffekte.
 
 ## Vor einem Verkaufsrelease erforderlich
 

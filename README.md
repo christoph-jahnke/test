@@ -1,4 +1,4 @@
-# Marine Outpost — 0.6
+# Marine Outpost — 0.7
 
 Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit freiem Turmbau, zufälligen Routen und Forschung zwischen Einsätzen.
 
@@ -6,7 +6,21 @@ Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit
 
 ZIP in einen neuen Ordner entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im Hauptmenü **Operation starten** wählen.
 
-## Neu in 0.6
+## Neu in 0.7 — 20 eigenständige Modelle
+
+- **9 Turmmodelle:** drei Grundwaffen und je zwei optisch eigenständige Spezialisierungen.
+- **4 Gegner:** Infizierter, Hetzer, Panzer-Infizierter und Titan mit eigener Anatomie und Panzerung.
+- **4 Wegarten:** Asphalt, Stahlgitter, Quarantäne und Ruinen; entlang der Zufallsroute eingesetzt.
+- **3 Kolonieobjekte:** Kommando-Bunker, Reaktor und Rasierdraht-Barrikade.
+- Echte GLB-Assets aus Blender mit abgeschrägten Kanten, PBR-Materialien und beweglichen Teilen. Bauvorschau zeigt ebenfalls das echte Modell.
+- Menü **Modellgalerie / 20 Assets** für Nahansichten und Zoom. Blutspuren und kurze Splittereffekte im Kampf.
+
+![Marine-Nahansicht](docs/screenshots/model_marine.png)
+![20 Modelle](docs/screenshots/models_20.png)
+
+[Alle Modelle und Blender-Quelle](models/README.md)
+
+## Aus Version 0.6
 
 - **Frei platzieren:** keine vorgegebenen Bauplätze, kein Raster. Straßen, Rand und andere Türme bleiben frei. Vorschau mit Reichweite, gültiger/ungültiger Farbe und Begründung.
 - **Zufällige Lane pro neuem Einsatz.** Der Seed wird mitgespeichert, die Route ändert sich nicht während eines laufenden Runs.
@@ -49,6 +63,7 @@ godot --headless --path . --script res://game/smoke_test.gd
 godot --headless --path . --script res://game/smoke_3d.gd
 godot --headless --path . --script res://game/smoke_progression.gd
 godot --headless --path . --script res://game/smoke_maps.gd
+godot --headless --path . --script res://game/smoke_models.gd
 ```
 
 Tests schreiben Nutzerdaten. Verwende separate `XDG_DATA_HOME`, `XDG_CONFIG_HOME` und `XDG_CACHE_HOME`. Die Grafik wird zusätzlich mit OpenGL unter Linux geprüft; Windows-Leistung und Audio benötigen eigene Spieltests. Screenshots zeigen arrangierte Situationen im tatsächlichen Build.

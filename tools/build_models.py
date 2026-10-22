@@ -1,0 +1,306 @@
+"""Original Marine Outpost asset pack. Run: blender -b --python tools/build_models.py"""
+import bpy, math, random, sys
+from pathlib import Path
+from mathutils import Vector
+OUT=Path(__file__).resolve().parents[1]/'models'; OUT.mkdir(exist_ok=True)
+random.seed(17)
+M={}
+def material(name,color,metal=.0,rough=.5,emission=0):
+ m=bpy.data.materials.new(name);m.diffuse_color=(*color,1);m.use_nodes=True
+ p=m.node_tree.nodes.get('Principled BSDF');p.inputs['Base Color'].default_value=(*color,1);p.inputs['Metallic'].default_value=metal;p.inputs['Roughness'].default_value=rough
+ if emission:p.inputs['Emission Color'].default_value=(*color,1);p.inputs['Emission Strength'].default_value=emission
+ M[name]=m
+for args in [('armor',(.12,.21,.27),.45,.36),('steel',(.36,.44,.48),.65,.3),('dark',(.025,.04,.055),.35,.5),('rubber',(.02,.025,.03),0,.85),('copper',(.48,.25,.1),.65,.36),('ivory',(.62,.66,.59),.3,.42),('cyan',(.1,.7,.83),.2,.25,1.1),('orange',(.9,.33,.045),.15,.4),('yellow',(.85,.62,.14),.1,.6),('violet',(.44,.21,.75),.2,.35),('frost',(.3,.7,.87),.1,.22,.7),('red',(.75,.055,.025),.1,.35,.6),('skin',(.19,.24,.14),0,.78),('flesh',(.20,.018,.024),0,.6),('bone',(.66,.63,.43),0,.65),('cloth',(.11,.14,.12),0,.92),('asphalt',(.055,.07,.085),0,.95),('concrete',(.22,.26,.28),0,.9),('blood',(.15,.015,.02),0,.48)]: material(*args)
+root=None
+
+def empty(name,pos=(0,0,0),parent=None):
+ n=bpy.data.objects.new(name,None);bpy.context.collection.objects.link(n);n.location=pos;n.parent=parent
+ return n
+
+def finish(obj,name,mat,parent=None,bevel=0):
+ obj.name=name;obj.data.materials.append(M[mat]);obj.parent=parent or root
+ if bevel:
+  mod=obj.modifiers.new('Machined edge bevel','BEVEL');mod.width=bevel;mod.segments=2
+  mod=obj.modifiers.new('Face weighted normals','WEIGHTED_NORMAL')
+ return obj
+
+def box(name,p,s,mat='armor',parent=None,bevel=.035,rot=(0,0,0)):
+ bpy.ops.mesh.primitive_cube_add(size=1,location=p);o=bpy.context.object;o.scale=s;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.rotation_euler=rot
+ return finish(o,name,mat,parent,bevel)
+
+def cyl(name,p,r,d,mat='steel',parent=None,axis=(0,0,1),vertices=20,r2=None):
+ if r2 is None:bpy.ops.mesh.primitive_cylinder_add(vertices=vertices,radius=r,depth=d,location=p)
+ else:bpy.ops.mesh.primitive_cone_add(vertices=vertices,radius1=r,radius2=r2,depth=d,location=p)
+ o=bpy.context.object;o.rotation_euler=Vector((0,0,1)).rotation_difference(Vector(axis)).to_euler()
+ for f in o.data.polygons:f.use_smooth=len(f.vertices)==4
+ return finish(o,name,mat,parent,.008)
+
+def ball(name,p,s,mat='skin',parent=None):
+ bpy.ops.mesh.primitive_uv_sphere_add(segments=16,ring_count=10,radius=1,location=p);o=bpy.context.object;o.scale=s;bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+ for f in o.data.polygons:f.use_smooth=True
+ return finish(o,name,mat,parent)
+
+def torus(name,p,r,t,mat='steel',parent=None,rot=(0,0,0)):
+ bpy.ops.mesh.primitive_torus_add(major_radius=r,minor_radius=t,major_segments=24,minor_segments=8,location=p,rotation=rot)
+ return finish(bpy.context.object,name,mat,parent)
+
+def link(name,a,b,r,mat='steel',parent=None):
+ mid=(Vector(a)+Vector(b))/2;return cyl(name,mid,r,(Vector(b)-Vector(a)).length,mat,parent,Vector(b)-Vector(a))
+
+def text(name,p,body,size,mat='ivory',rot=(0,0,0),parent=None):
+ bpy.ops.object.text_add(location=p,rotation=rot);o=bpy.context.object;o.data.body=body;o.data.size=size;o.data.align_x='CENTER';o.data.extrude=.002;o.data.materials.append(M[mat]);o.parent=parent or root
+ bpy.ops.object.convert(target='MESH');return bpy.context.object
+
+def bolts(p,s,parent=None):
+ for x in [-1,1]:
+  for y in [-1,1]:cyl('Rivet',(p[0]+x*s[0],p[1]+y*s[1],p[2]),.025,.028,'steel',parent,vertices=8)
+
+def scar(p,scale=1,parent=None):
+ for i in range(3):box('Scored armor',(p[0]+i*.05*scale,p[1],p[2]+i*.025*scale),(.018*scale,.13*scale,.006),'dark',parent,.002,rot=(0,0,-.5))
+
+def muzzle(parent,x,y,z,r=.09,length=.8):
+ cyl('Barrel jacket',(x,y,z),r,length,'steel',parent,(0,1,0))
+ torus('Muzzle rim',(x,y+length/2,z),r*.9,r*.18,'dark',parent,(math.pi/2,0,0))
+ cyl('Bore',(x,y+length/2+.004,z),r*.64,.012,'dark',parent,(0,1,0))
+ for off in [-.18,.1]:cyl('Barrel collar',(x,y+off,z),r*1.15,.05,'dark',parent,(0,1,0))
+
+def tower(kind,variant):
+ accent=['cyan','orange','frost'][kind]
+ cyl('Anchor deck',(0,0,.12),.81,.24,'dark',vertices=8)
+ cyl('Beveled plinth',(0,0,.26),.71,.15,'armor',vertices=8)
+ torus('Bearing',(0,0,.37),.43,.055,'steel')
+ for angle in range(0,360,90):
+  a=math.radians(angle);x,y=math.cos(a)*.6,math.sin(a)*.6
+  box('Anchor clamp',(x,y,.27),(.22,.23,.15),'steel');cyl('Anchor bolt',(x,y,.36),.045,.05,'dark',vertices=8)
+  box('Safety flash',(x,y,.385),(.14,.13,.018),accent,bevel=.005)
+ cyl('Turntable',(0,0,.49),.42,.2,'steel')
+ head=empty('Head',parent=root)
+ box('Armored cradle',(0,-.04,.84),(.83,.75,.44),'armor',head,.09)
+ box('Top carapace',(0,-.12,1.09),(.87,.64,.15),'steel',head,.065)
+ for side in [-1,1]:
+  box('Flank plate',(side*.48,-.12,.88),(.14,.68,.38),'armor',head,.045)
+  box('Identification strip',(side*.559,-.07,.98),(.015,.39,.055),accent,head,.004)
+  for i in range(4):box('Cooling vent',(side*.25,-.38+i*.07,1.178),(.14,.025,.015),'dark',head,.003)
+ bolts((0,-.12,1.182),(.34,.22),head)
+ scar((.11,-.12,1.184),parent=head)
+ cyl('Optics mast',(-.25,-.23,1.28),.065,.25,'dark',head)
+ ball('Targeting eye',(-.25,-.19,1.4),(.09,.08,.06),accent,head)
+ text('Unit stencil',(0,-.08,1.185),['SENT','MTR','CRYO'][kind],.1,'ivory',parent=head)
+ if kind==0:
+  if variant==0: # Long precision weapon with two rails and energized core.
+   for side in [-1,1]:box('Rail',(side*.15,.87,1.0),(.09,1.75,.13),'steel',head,.025)
+   box('Accelerator',(0,.9,1),(.08,1.5,.06),'cyan',head,.008)
+   box('Muzzle brake',(0,1.73,1),(.44,.19,.22),'dark',head,.025)
+   box('Scope',(0,.12,1.3),(.18,.45,.17),'dark',head,.03)
+   cyl('Scope glass',(0,.36,1.3),.06,.02,'cyan',head,(0,1,0))
+  elif variant==1:
+   cyl('Rotary housing',(0,.35,.98),.28,.32,'dark',head,(0,1,0))
+   rotor=empty('Rotor',(0,0,.98),head)
+   for i in range(6):
+    a=i*math.tau/6;muzzle(rotor,math.cos(a)*.16,.92,math.sin(a)*.16,.052,1.12)
+   torus('Rotary muzzle brace',(0,1.4,0),.22,.045,'steel',rotor,(math.pi/2,0,0))
+   cyl('Ammo drum',(-.66,-.1,.83),.26,.35,'copper',head,(1,0,0))
+  else:
+   for side in [-1,1]:muzzle(head,side*.2,.7,.98,.09,.94)
+   box('Feed tray',(.62,-.13,.8),(.3,.55,.32),'dark',head,.04)
+   for i in range(5):cyl('Linked cartridge',(.65,-.32+i*.09,1.0),.035,.2,'copper',head)
+ elif kind==1:
+  if variant==1: # Three individually collared launchers.
+   for x in [-.29,0,.29]:
+    link('Launcher',(x,.05,.87),(x,.48,1.5),.135,'steel',head)
+    torus('Launcher rim',(x,.48,1.5),.13,.032,'orange',head,(.6,0,0))
+    ball('Launcher darkness',(x,.48,1.5),(.09,.09,.025),'dark',head)
+  else:
+   radius=.22 if variant<0 else .3
+   end=(0,.68,1.56 if variant<0 else 1.86)
+   link('Howitzer tube',(0,.03,.82),end,radius,'steel',head)
+   ball('Bore darkness',end,(radius*.8,radius*.8,radius*.2),'dark',head)
+   for side in [-1,1]:link('Recoil piston',(side*.36,-.1,.67),(side*.36,.38,1.22),.065,'copper',head)
+   box('Recoil shield',(0,.24,.95),(.98,.15,.35),'armor',head,.04)
+  for side in [-1,1]:
+   box('Shell rack',(side*.66,-.13,.7),(.28,.62,.23),'dark',head,.03)
+   for i in range(3):cyl('Shell',(side*.66,-.32+i*.2,.92),.075,.26,'copper',head,r2=.04)
+ else:
+  if variant==1:
+   cyl('Pulse mast',(0,.02,1.35),.15,.7,'steel',head)
+   cyl('Dish',(0,.02,1.76),.48,.15,'armor',head,r2=.24)
+   torus('Field emitter',(0,.02,1.85),.45,.055,'frost',head)
+   for i in range(4):
+    a=i*math.tau/4;link('Field prong',(math.cos(a)*.15,math.sin(a)*.15,1.5),(math.cos(a)*.45,math.sin(a)*.45,1.95),.045,'steel',head)
+  else:
+   for z in [.96,1.13,1.3,1.47]:torus('Cryogenic coil',(0,.08,z),.26,.045,'steel',head)
+   cyl('Coolant core',(0,.08,1.25),.17,.73,'frost',head,vertices=6,r2=.1)
+   for side in [-1,1]:
+    box('Emitter fin',(side*.35,.08,1.36),(.12,.32,.75),'armor',head,.03,rot=(0,side*.18,0))
+    box('Frozen seam',(side*.35,.255,1.36),(.04,.025,.5),'frost',head,.004)
+   if variant==0:
+    for a in [0,math.pi/2,math.pi,math.pi*1.5]:cyl('Zero crystal',(math.cos(a)*.2,.08+math.sin(a)*.2,1.81),.09,.36,'frost',head,vertices=5,r2=0)
+  for side in [-1,1]:cyl('Coolant tank',(side*.62,-.22,.84),.15,.5,'dark',head)
+
+def zombie(kind):
+ # Hierarchical limbs are exported as actual animation pivots.
+ titan=kind==3; runner=kind==1; armored=kind==2
+ skin='skin';bodywidth=.28 if not titan else .4
+ ball('Torso',(0,0,.9),(bodywidth,.19,.38),'cloth')
+ ball('Infected back',(0,-.12,1.02),(.28,.24,.25),'skin')
+ for side,name in [(-1,'LegL'),(1,'LegR')]:
+  leg=empty(name,(side*.13,0,.55),root)
+  # Child coordinates are local to the hip, unlike torso meshes.
+  ball('Thigh',(0,0,-.13),(.105,.11,.21),'cloth',leg)
+  ball('Kneecap',(0,.055,-.32),(.105,.09,.08),'skin',leg)
+  link('Shin',(0,0,-.31),(0,.035,-.52),.072,'cloth',leg)
+  box('Boot',(0,.08,-.51),(.19,.3,.12),'rubber',leg,.035)
+  arm=empty('ArmL' if side<0 else 'ArmR',(side*.31,0,1.05),root)
+  link('Upper arm',(0,0,0),(side*.08,.2,-.13),.085,'skin',arm)
+  link('Forearm',(side*.08,.2,-.13),(side*.1,.46,-.22),.07,'skin',arm)
+  ball('Claw hand',(side*.1,.49,-.23),(.09,.11,.07),'skin',arm)
+  for finger in range(3):link('Claw',(side*.1-.05+finger*.05,.54,-.24),(side*.1-.05+finger*.05,.66,-.3),.013,'bone',arm)
+ ball('Neck',(0,.015,1.22),(.1,.1,.15),'skin')
+ ball('Skull',(0,.055,1.4),(.18,.17,.2),'skin')
+ ball('Broken jaw',(0,.18,1.3),(.13,.09,.08),'flesh')
+ ball('Torn cheek',(-.12,.17,1.36),(.065,.065,.13),'flesh')
+ box('Facial slash',(.10,.212,1.45),(.025,.018,.21),'blood',bevel=.008,rot=(0,.3,.2))
+ for side in [-1,1]:
+  ball('Eye socket',(side*.075,.202,1.435),(.057,.025,.043),'dark')
+  ball('Infected eye',(side*.075,.224,1.435),(.019,.009,.014),'red')
+  box('Heavy brow',(side*.075,.208,1.477),(.15,.067,.055),'skin',bevel=.02,rot=(0,side*.22,0))
+ for i in range(5):box('Teeth',(-.08+i*.04,.253,1.31),(.023,.018,.037),'bone',bevel=.003)
+ # Exposed ribs and torn uniform, no featureless recolored body.
+ for i in range(4):
+  box('Rib',(-.08,.187,.73+i*.075),(.2,.035,.028),'bone',bevel=.012,rot=(0,.2,-.15))
+ ball('Open wound',(.13,.19,.93),(.065,.032,.17),'flesh')
+ box('Utility belt',(0,0,.59),(.47,.36,.08),'dark',bevel=.02)
+ if runner:
+  root.scale=(.8,1.15,1.0)
+  for i in range(5):cyl('Spinal spur',(0,-.22,.75+i*.11),.055,.22,'bone',axis=(0,-1,.4),vertices=5,r2=0)
+  box('Torn hazard band',(.26,.02,1.12),(.13,.21,.08),'yellow')
+ elif armored:
+  box('Breastplate',(0,.17,.95),(.58,.13,.52),'armor',bevel=.07)
+  box('Trauma plate',(0,.25,1),(.31,.035,.3),'steel',bevel=.02)
+  for side in [-1,1]:box('Pauldrons',(side*.36,0,1.14),(.26,.36,.22),'armor',bevel=.06)
+  ball('Helmet',(0,.02,1.46),(.215,.2,.19),'armor')
+  box('Broken visor',(0,.205,1.46),(.3,.035,.075),'red',bevel=.02)
+  text('Armor stencil',(0,.278,1.04),'07',.1,'ivory',rot=(math.pi/2,0,0))
+ elif titan:
+  ball('Mutated shoulder mass',(0,-.18,1.12),(.4,.29,.32),'skin')
+  for i in range(6):
+   x=(-.24 if i%2==0 else .19)+(i//2)*.025;z=.99+i*.065
+   ball('Necrotic growth',(x,-.31,z),(.13,.12,.12),'flesh' if i%2 else 'skin')
+  for i in range(4):cyl('Exposed vertebra',(0,-.40,.96+i*.11),.07,.14,'bone',axis=(0,-1,.2),vertices=6,r2=.025)
+  ball('Hypertrophic shoulder',(-.39,-.015,1.1),(.32,.29,.28),'skin')
+  link('Mutated club',(-.43,.05,.98),(-.54,.33,.42),.18,'skin')
+  for side in [-1,1]:
+   box('Implanted restraint',(side*.3,.015,.9),(.13,.48,.5),'dark',bevel=.05)
+   for i in range(3):cyl('Bone spike',(side*(.34+i*.07),-.04,1.28+i*.07),.085,.42,'bone',axis=(side*.5,0,1),vertices=6,r2=0)
+  ball('Torn abdomen',(0,.235,.81),(.14,.04,.19),'flesh')
+  box('Containment collar',(0,0,1.23),(.52,.39,.12),'steel',bevel=.03)
+  for i in range(3):ball('Glowing infection',(.22,-.18,1.17+i*.1),(.06,.05,.07),'red')
+
+def road(kind):
+ box('Foundation',(0,0,-.05),(2.2,2,.16),'concrete',bevel=.025)
+ box('Road surface',(0,0,.045),(1.72,2,.08),'asphalt',bevel=.012)
+ for side in [-1,1]:
+  box('Curb',(side*1.02,0,.055),(.14,2,.14),'steel',bevel=.018)
+  box('Lane light',(side*.93,.45,.115),(.045,.4,.018),'yellow',bevel=.004)
+ if kind==0:
+  box('Center dash',(0,.12,.09),(.045,.5,.008),'ivory',bevel=.002)
+  for i in range(4):
+   x=random.uniform(-.7,.7);y=random.uniform(-.8,.8)
+   box('Asphalt scar',(x,y,.092),(.018,random.uniform(.1,.4),.005),'dark',bevel=0,rot=(0,0,random.uniform(-1,1)))
+ elif kind==1:
+  box('Deck',(0,0,.105),(1.65,1.92,.08),'dark',bevel=.01)
+  for i in range(12):box('Drain grating',(0,-.88+i*.16,.16),(1.5,.055,.025),'steel',bevel=.008)
+  for side in [-1,1]:cyl('Conduit',(side*.69,0,.19),.055,1.92,'copper',axis=(0,1,0))
+ elif kind==2:
+  for side in [-1,1]:
+   for i in range(7):box('Hazard stripe',(side*.72,-.82+i*.27,.105),(.22,.11,.012),'yellow',bevel=.002,rot=(0,0,-.5))
+   box('Warning beacon',(side*1.03,0,.22),(.12,.24,.22),'orange',bevel=.02)
+  ball('Blood smear',(.22,.35,.1),(.19,.32,.008),'blood')
+  for i in range(5):ball('Spatter',(.15+math.sin(i*2.4)*.25,.3+math.cos(i*2.4)*.4,.103),(.025+i*.005,.035,.006),'blood')
+ elif kind==3:
+  for i in range(6):
+   x=random.uniform(-.55,.55);y=random.uniform(-.75,.75)
+   box('Fracture',(x,y,.1),(.025,.55,.01),'dark',bevel=.002,rot=(0,0,random.uniform(-1,1)))
+  for side in [-1,1]:
+   box('Broken edge',(side*.79,.58,.14),(.16,.26,.11),'concrete',bevel=.02,rot=(0,.2,.4))
+   link('Exposed rebar',(side*.9,.35,.1),(side*.86,.6,.2),.018,'copper')
+  ball('Dragged remains',(-.27,-.1,.1),(.12,.36,.008),'blood')
+
+def prop(kind):
+ if kind==0:
+  box('Bunker hull',(0,0,1.05),(2.8,3.3,2.1),'armor',bevel=.22)
+  box('Roof armor',(0,0,2.18),(3.15,3.6,.28),'steel',bevel=.12)
+  for side in [-1,1]:
+   box('Gate buttress',(side*1.2,1.72,.9),(.4,.44,1.8),'dark',bevel=.07)
+   box('Door light',(side*.96,1.92,.95),(.055,.05,1.6),'cyan',bevel=.008)
+   for i in range(5):box('Roof vent',(side*.68,-.7+i*.24,2.34),(.65,.065,.035),'dark',bevel=.01)
+  box('Armored door',(0,1.69,.91),(1.75,.1,1.7),'steel',bevel=.06)
+  box('Gate seam',(0,1.755,.9),(.04,.015,1.65),'dark',bevel=.002)
+  for i in range(4):box('Gate ribs',(0,1.77,.35+i*.35),(1.6,.035,.055),'dark',bevel=.006)
+  text('Bunker identification',(0,-.15,2.34),'OUTPOST 07',.24)
+  cyl('Antenna',(1,-1.1,3),.04,1.45,'steel')
+  ball('Antenna beacon',(1,-1.1,3.75),(.08,.08,.08),'red')
+ elif kind==1:
+  cyl('Generator deck',(0,0,.15),1.1,.3,'dark',vertices=8)
+  cyl('Reactor body',(0,0,1.05),.68,1.7,'armor',vertices=16)
+  for z in [.5,.8,1.1,1.4,1.7]:torus('Containment ring',(0,0,z),.69,.055,'steel')
+  for a in range(0,360,60):
+   angle=math.radians(a);x,y=math.cos(angle)*.69,math.sin(angle)*.69
+   box('Core window',(x,y,1.05),(.15,.15,1.2),'cyan',bevel=.025)
+  cyl('Reactor crown',(0,0,1.98),.8,.2,'steel',r2=.6)
+  for side in [-1,1]:
+   link('Coolant pipe',(side*.95,0,.3),(side*.95,0,1.5),.1,'copper')
+   link('Header',(side*.95,0,1.5),(side*.5,0,1.5),.1,'copper')
+  text('Reactor number',(0,0,2.09),'R-09',.2)
+ else:
+  box('Barrier foot',(0,0,.1),(3.3,.85,.2),'dark',bevel=.08)
+  box('Barrier armor',(0,0,.52),(3,.6,.85),'concrete',bevel=.12)
+  for x in [-1.1,-.7,-.3,.1,.5,.9]:box('Hazard stripe',(x,.311,.62),(.16,.015,.42),'yellow',bevel=.003,rot=(0,.35,0))
+  for side in [-1,1]:
+   cyl('Wire post',(side*1.25,0,1.18),.035,.6,'steel')
+   box('Bolt plate',(side*1.13,.32,.35),(.2,.04,.14),'steel',bevel=.015)
+  # Actual coiled razor wire and projecting barbs.
+  for i in range(13):
+   ring=torus('Razor coil',(-1.2+i*.2,0,1.27),.19,.012,'steel',rot=(0,math.pi/2,0))
+   link('Barb',(-1.2+i*.2,-.2,1.25),(-1.2+i*.2,-.29,1.36),.009,'steel')
+  scar((.5,.28,.95),2)
+
+def export(name):
+ # Apply bevels and consolidate by rigid part/material. Preserve named limb pivots.
+ bpy.ops.object.select_all(action='DESELECT')
+ meshes=[o for o in bpy.context.scene.objects if o.type=='MESH']
+ for o in meshes:
+  bpy.context.view_layer.objects.active=o;o.select_set(True)
+  for mod in list(o.modifiers):
+   try:bpy.ops.object.modifier_apply(modifier=mod.name)
+   except RuntimeError:pass
+  o.select_set(False)
+ groups={}
+ for o in meshes:groups.setdefault((o.parent.name if o.parent else '',o.data.materials[0].name),[]).append(o)
+ for group in groups.values():
+  if len(group)<2:continue
+  bpy.ops.object.select_all(action='DESELECT')
+  for o in group:o.select_set(True)
+  bpy.context.view_layer.objects.active=group[0];bpy.ops.object.join()
+ bpy.ops.object.select_all(action='SELECT')
+ bpy.ops.export_scene.gltf(filepath=str(OUT/(name+'.glb')),export_format='GLB',use_selection=True,export_yup=True,export_animations=False,export_cameras=False,export_lights=False)
+ print('ASSET COMPLETE:',name)
+
+def clear():
+ global root
+ bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
+ root=empty('Model')
+
+names=['01_marine_sentinel','02_mortar_bulwark','03_cryo_prism','04_sniper_lancer','05_assault_reaper','06_siege_judgement','07_cluster_hydra','08_deepfreeze_zero','09_fieldcontrol_pulse','10_zombie_walker','11_zombie_runner','12_zombie_armored','13_zombie_titan','14_road_asphalt','15_road_steel','16_road_quarantine','17_road_ruined','18_bunker_command','19_reactor','20_barricade']
+only = next((a.split('=',1)[1] for a in sys.argv if a.startswith('--only=')), '')
+selected = set(int(x) for x in only.split(',')) if only else set(range(1,21))
+for index,name in enumerate(names):
+ if index+1 not in selected: continue
+ clear()
+ if index<3:tower(index,-1)
+ elif index<9:tower((index-3)//2,(index-3)%2)
+ elif index<13:zombie(index-9)
+ elif index<17:road(index-13)
+ else:prop(index-17)
+ export(name)
+print('FINISHED:',len(selected),'ORIGINAL ASSETS')

@@ -99,10 +99,13 @@ func _ready() -> void:
 	build_view = Control.new()
 	bottom.add_child(build_view)
 	label_at(build_view, "VERTEIDIGUNG BAUEN", Vector2(20, 10), 13, Color("74cad9"))
-	var descriptions = ["1 / MARINE    $60\nSchnelle Salven · Einzelziel", "2 / MÖRSER    $110\nFlächenschaden · gegen Panzer", "3 / KRYO    $85\nKontrolle · verlangsamt Gegner"]
+	var descriptions = ["1 / MARINE    $60\nSalven · Einzelziel", "2 / MÖRSER    $110\nFläche · Panzerbrechend", "3 / KRYO    $85\nVerlangsamt Gegner"]
 	for i in 3:
 		var button = button_at(build_view, descriptions[i], Vector2(20 + i * 270, 39), Vector2(254, 82), world.begin_build.bind(i))
-		button.add_theme_font_size_override("font_size", 16)
+		button.add_theme_font_size_override("font_size", 14)
+		button.icon = load("res://art/portraits/%s.png" % ["marine", "mortar", "cryo"][i])
+		button.expand_icon = true
+		button.add_theme_constant_override("icon_max_width", 64)
 		button.tooltip_text = "Wählen, dann frei neben dem Weg platzieren."
 		build_buttons.append(button)
 	placement_hint = label_at(build_view, "", Vector2(855, 42), 17)
@@ -165,7 +168,8 @@ func build_menu() -> void:
 	save_button = button_at(card, "Einsatz speichern", Vector2(44, 552), Vector2(215, 44), manual_save)
 	load_button = button_at(card, "Spielstand laden", Vector2(274, 552), Vector2(220, 44), manual_load)
 	button_at(card, "FORSCHUNG / permanente Verbesserungen", Vector2(44, 610), Vector2(450, 48), show_research)
-	label_at(card, "ENTWICKLUNGSVERSION 0.6  /  SINGLEPLAYER\nOriginale Low-Poly-Grafik und synthetisierte Effekte.\nMultiplayer und Steam-Integration sind noch in Planung.", Vector2(44, 684), 14, Color("7f9aac"))
+	button_at(card, "Modellgalerie / 20 Assets", Vector2(624, 552), Vector2(450, 48), open_gallery)
+	label_at(card, "ENTWICKLUNGSVERSION 0.7  /  SINGLEPLAYER\nOriginale Low-Poly-Grafik und synthetisierte Effekte.\nMultiplayer und Steam-Integration sind noch in Planung.", Vector2(44, 684), 14, Color("7f9aac"))
 
 func apply_settings() -> void:
 	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(master_volume, 0.0001)))
@@ -373,3 +377,9 @@ func deselect_tower() -> void:
 func sell_tower() -> void:
 	sim.sell_selected()
 	world.building = false
+
+func open_gallery() -> void:
+	if sim.has_started and sim.lives > 0 and sim.save_run() != OK:
+		menu_info.text = "Vor dem Galerie-Wechsel konnte nicht gespeichert werden."
+		return
+	get_tree().change_scene_to_file("res://game/model_gallery.tscn")

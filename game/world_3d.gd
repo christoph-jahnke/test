@@ -1,5 +1,6 @@
 extends Node3D
 
+const Assets = preload("res://game/asset_catalog.gd")
 const Simulation = preload("res://game/simulation_3d.gd")
 const CommandUI = preload("res://game/command_ui.gd")
 var terrain: Node3D
@@ -8,6 +9,9 @@ var cursor_position = Vector2.ZERO
 var cursor_valid = false
 var building = false
 var floating_credits: Array[Dictionary] = []
+var death_effects: Array[Dictionary] = []
+var ghost_good: StandardMaterial3D
+var ghost_bad: StandardMaterial3D
 var command_ui: CanvasLayer
 var sun: DirectionalLight3D
 var sound_players: Array[AudioStreamPlayer] = []
@@ -79,7 +83,17 @@ func _ready() -> void:
 	environment.environment.background_color = Color("101b2a")
 	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment.environment.ambient_light_color = Color("6e93bd")
-	environment.environment.ambient_light_energy = 0.4
+	environment.environment.ambient_light_energy = 0.65
+	var sky = Sky.new()
+	var atmosphere = ProceduralSkyMaterial.new()
+	atmosphere.sky_top_color = Color("23364e")
+	atmosphere.sky_horizon_color = Color("8d9aa6")
+	atmosphere.ground_bottom_color = Color("151c26")
+	atmosphere.ground_horizon_color = Color("5b6470")
+	sky.sky_material = atmosphere
+	environment.environment.sky = sky
+	environment.environment.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	environment.environment.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	add_child(environment)
 	sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42, -30, 0)
@@ -125,9 +139,8 @@ func _ready() -> void:
 		sound_players.append(player)
 	ghost = Node3D.new()
 	add_child(ghost)
-	var preview = cylinder(ghost, Vector3(0, 0.3, 0), 0.75, 0.18, Color("55dcb6"))
-	preview.name = "Footprint"
-	box(ghost, Vector3(0, 0.65, 0), Vector3(0.7, 0.55, 0.7), Color("55dcb6"))
+	ghost_good = preview_material(Color(0.2, 0.9, 0.7, 0.5))
+	ghost_bad = preview_material(Color(0.95, 0.2, 0.25, 0.5))
 	ghost.visible = false
 	command_ui = CommandUI.new()
 	command_ui.world = self
@@ -159,6 +172,9 @@ func build_colony() -> void:
 	for credit in floating_credits:
 		credit.node.queue_free()
 	floating_credits.clear()
+	for effect in death_effects:
+		effect.node.queue_free()
+	death_effects.clear()
 	if is_instance_valid(terrain):
 		remove_child(terrain)
 		terrain.queue_free()
@@ -175,32 +191,36 @@ func build_colony() -> void:
 		shoulder.rotation.y = atan2(b.x - a.x, b.z - a.z)
 		var road = box(terrain, (a + b) / 2 + Vector3(0, 0.08, 0), Vector3(1.7, 0.12, length + 1.7), Color("151e29"))
 		road.rotation.y = shoulder.rotation.y
-		for step in range(0, int(length), 2):
-			var pos = a.move_toward(b, step)
-			var direction = (b - a).normalized()
-			var normal = Vector3(-direction.z, 0, direction.x)
-			for side in [-1, 1]:
-				var lamp = box(terrain, pos + normal * side * 0.98 + Vector3(0, 0.16, 0), Vector3(0.09, 0.045, 0.55), Color("f4b85c"), true)
-				lamp.rotation.y = shoulder.rotation.y
+		var offset = 0.0
+		while offset < length - 0.001:
+			var span = minf(2.0, length - offset)
+			var tile = Assets.create(13 + posmod(i + sim.map_seed, 4))
+			terrain.add_child(tile)
+			tile.position = a.move_toward(b, offset + span / 2) + Vector3(0, 0.18, 0)
+			tile.rotation.y = shoulder.rotation.y
+			tile.scale.z = span / 2
+			offset += span
+
 	# All solid scenery is outside the freely buildable field.
 	var rng = RandomNumberGenerator.new()
 	rng.seed = sim.map_seed + 42
 	for i in 9:
 		var x = -26.0 + i * 6.4
-		var h = rng.randf_range(1.8, 5.3)
-		box(terrain, Vector3(x, h / 2, -13.6), Vector3(3.8, h, 3), Color("27394c"))
-		box(terrain, Vector3(x, h + 0.16, -13.6), Vector3(4.2, 0.32, 3.4), Color("607389"))
-		for window in 4:
-			box(terrain, Vector3(x - 1.25 + window * 0.85, h * 0.65, -12.08), Vector3(0.4, 0.4, 0.05), Color("62c8e6"), true)
-		cylinder(terrain, Vector3(x + 0.8, h + 0.75, -13.6), 0.22, 1.2, Color("516677"))
+		var reactor = Assets.create(18)
+		terrain.add_child(reactor)
+		reactor.position = Vector3(x, 0, -13.7)
+		reactor.scale = Vector3.ONE * rng.randf_range(1.1, 1.65)
+
 	for i in 30:
 		var x = rng.randf_range(-27, 27)
 		var z = rng.randf_range(11.4, 14.5) if i % 2 == 0 else rng.randf_range(-15.5, -12.2)
 		var rock = cylinder(terrain, Vector3(x, 0.12, z), rng.randf_range(0.2, 0.65), rng.randf_range(0.3, 0.9), Color("56606b"))
 		rock.rotation.z = rng.randf_range(-0.5, 0.5)
 	for x in range(-25, 27, 6):
-		box(terrain, Vector3(x, 0.35, 13), Vector3(3.2, 0.7, 0.65), Color("465865"))
-		box(terrain, Vector3(x, 0.76, 13), Vector3(1, 0.1, 0.4), Color("6daec2"), true)
+		var barrier = Assets.create(19)
+		terrain.add_child(barrier)
+		barrier.position = Vector3(x, 0, 13)
+
 	# Entry anomaly and the command bunker move with the random lane.
 	var entry = point(path[0] + Vector2(90, 0))
 	var portal = TorusMesh.new()
@@ -209,14 +229,29 @@ func build_colony() -> void:
 	var gate = shape(terrain, entry + Vector3(0, 1.25, 0), portal, Color("b74e68"), true)
 	gate.rotation.z = PI / 2
 	var base = point(path[-1] - Vector2(80, 0))
-	box(terrain, base + Vector3(0, 1.1, 0), Vector3(2.8, 2.2, 3.3), Color("304d64"))
-	box(terrain, base + Vector3(0, 2.3, 0), Vector3(3.2, 0.25, 3.7), Color("7594a6"))
-	box(terrain, base + Vector3(-1.44, 0.95, 0), Vector3(0.08, 1.7, 2.1), Color("4fd8ec"), true)
-	for side in [-1, 1]:
-		cylinder(terrain, base + Vector3(0.2, 2.7, side), 0.28, 0.7, Color("1c3549"))
-		box(terrain, base + Vector3(0.2, 3.1, side), Vector3(0.45, 0.1, 0.45), Color("65d7eb"), true)
+	var bunker = Assets.create(17)
+	terrain.add_child(bunker)
+	bunker.position = base
+	bunker.rotation.y = PI / 2
+
+func preview_material(color: Color) -> StandardMaterial3D:
+	var result = StandardMaterial3D.new()
+	result.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	result.albedo_color = color
+	result.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return result
+
+func tint_preview(node: Node, material: StandardMaterial3D) -> void:
+	if node is MeshInstance3D:
+		node.material_override = material
+		node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for child in node.get_children():
+		tint_preview(child, material)
 
 func begin_build(kind: int) -> void:
+	for child in ghost.get_children():
+		child.free()
+	ghost.add_child(Assets.create(kind))
 	sim.choose_weapon(kind)
 	sim.selected = -1
 	building = true
@@ -225,6 +260,7 @@ func ground_at(screen: Vector2) -> Variant:
 	return Plane(Vector3.UP, 0.15).intersects_ray(camera.project_ray_origin(screen), camera.project_ray_normal(screen))
 
 func spawn_credit(pos: Vector2, amount: int) -> void:
+	spawn_death_effect(pos)
 	var coin = Node3D.new()
 	add_child(coin)
 	coin.position = point(pos, 1.0)
@@ -241,78 +277,48 @@ func spawn_credit(pos: Vector2, amount: int) -> void:
 	coin.add_child(text)
 	floating_credits.append({"node": coin, "pos": coin.position, "age": 0.0, "token": token})
 
+func spawn_death_effect(pos: Vector2) -> void:
+	if death_effects.size() >= 24:
+		death_effects[0].node.queue_free()
+		death_effects.pop_front()
+	var group = Node3D.new()
+	add_child(group)
+	group.position = point(pos, 0.31)
+	var stain = sphere(group, Vector3.ZERO, 0.32, Color("38121c"))
+	stain.scale = Vector3(1.3, 0.025, 0.8)
+	var pieces = []
+	for i in 5:
+		var mesh = sphere(group, Vector3(0, 0.5, 0), 0.055 + i * 0.008, Color("7e3033") if i % 2 == 0 else Color("b1a478"))
+		pieces.append({"mesh": mesh, "velocity": Vector3(cos(i * 2.4) * 1.5, 1.8 + i * 0.2, sin(i * 2.4) * 1.5)})
+	death_effects.append({"node": group, "age": 0.0, "pieces": pieces})
+
 func make_tower(data: Dictionary) -> Node3D:
-	var model = Node3D.new()
+	var model = Assets.create(Assets.tower_index(int(data.kind), int(data.get("branch", -1))))
 	units.add_child(model)
-	cylinder(model, Vector3(0, 0.15, 0), 0.83, 0.25, Color("374958"))
-	cylinder(model, Vector3(0, 0.32, 0), 0.65, 0.12, Color("78929d"))
-	cylinder(model, Vector3(0, 0.5, 0), 0.48, 0.3, Color("24394a"))
-	var head = Node3D.new()
-	head.name = "Head"
-	model.add_child(head)
-	var color: Color = sim.weapon(data).color
-	box(head, Vector3(0, 0.9, 0), Vector3(0.85, 0.6, 0.8), color.darkened(0.45))
-	for side in [-1, 1]:
-		box(head, Vector3(side * 0.52, 0.95, 0.05), Vector3(0.25, 0.32, 0.52), color.darkened(0.2))
-		box(model, Vector3(side * 0.42, 0.28, 0.4), Vector3(0.25, 0.25, 0.3), Color("75848b"))
-	box(head, Vector3(0, 1.35, 0.1), Vector3(0.45, 0.4, 0.42), Color("6c8799"))
-	box(head, Vector3(0, 1.38, -0.13), Vector3(0.36, 0.12, 0.08), Color("ffd37b"), true)
-	var kind = int(data.get("kind", 0))
-	if kind == 1:
-		var barrel = cylinder(head, Vector3(0, 1.1, -0.5), 0.23, 0.9, Color("8b754f"))
-		barrel.rotation.x = PI / 3
-	elif kind == 2:
-		box(head, Vector3(0, 1.05, -0.65), Vector3(0.3, 0.3, 1.1), Color("635794"))
-		cylinder(head, Vector3(0, 1.2, -0.85), 0.18, 0.4, color)
-	else:
-		for side in [-1, 1]:
-			box(head, Vector3(side * 0.22, 1, -0.6), Vector3(0.13, 0.15, 1.1), Color("8195a1"))
 	var badge = Label3D.new()
 	badge.name = "Badge"
-	badge.position = Vector3(0, 1.85, 0)
+	badge.position = Vector3(0, 2.05, 0)
 	badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	badge.font_size = 32
 	badge.pixel_size = 0.014
-	badge.modulate = color
+	badge.modulate = sim.weapon(data).color
 	model.add_child(badge)
-	if int(data.get("branch", -1)) >= 0:
-		for side in [-1, 1]:
-			box(head, Vector3(side * 0.35, 1.2, 0.35), Vector3(0.15, 0.45, 0.18), color, true)
 	return model
 
 func make_zombie(data: Dictionary) -> Node3D:
-	var model = Node3D.new()
+	var model = Assets.create(Assets.enemy_index(data.get("kind", "Zombie")))
 	units.add_child(model)
-	var skin: Color = Color("8ca575") * data.get("tint", Color.WHITE)
-	var body = CapsuleMesh.new()
-	body.radius = 0.25
-	body.height = 0.7
-	body.radial_segments = 10
-	body.rings = 4
-	shape(model, Vector3(0, 0.8, 0), body, Color("394a45"))
-	box(model, Vector3(0, 0.83, -0.23), Vector3(0.14, 0.32, 0.06), Color("734b46"))
-	sphere(model, Vector3(0, 1.24, -0.02), 0.2, skin)
-	for side in [-1, 1]:
-		var leg = cylinder(model, Vector3(side * 0.15, 0.28, 0), 0.09, 0.55, Color("343f44"))
-		leg.name = "LegL" if side == -1 else "LegR"
-		var arm = cylinder(model, Vector3(side * 0.33, 0.83, -0.23), 0.085, 0.65, skin)
-		arm.rotation.x = PI / 2 - 0.2
-		sphere(model, Vector3(side * 0.33, 0.79, -0.55), 0.11, skin)
-		box(model, Vector3(side * 0.1, 1.28, -0.19), Vector3(0.07, 0.05, 0.035), Color("ff7451"), true)
-	if data.get("kind", "") == "Panzer":
-		box(model, Vector3(0, 0.85, -0.17), Vector3(0.52, 0.4, 0.12), Color("7893a7"))
+	model.set_meta("asset_scale", model.scale)
 	if data.get("kind", "") == "Titan":
-		for side in [-1, 1]:
-			box(model, Vector3(side * 0.36, 1.15, 0), Vector3(0.25, 0.25, 0.4), Color("846858"))
 		var badge = Label3D.new()
 		badge.text = "TITAN"
-		badge.position = Vector3(0, 1.85, 0)
+		badge.position = Vector3(0, 1.9, 0)
 		badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		badge.font_size = 32
 		badge.pixel_size = 0.012
 		badge.modulate = Color("f0ad85")
 		model.add_child(badge)
-	var health = box(model, Vector3(0, 1.65, 0), Vector3(0.7, 0.06, 0.06), Color("b7e775"), true)
+	var health = box(model, Vector3(0, 1.75, 0), Vector3(0.7, 0.06, 0.06), Color("b7e775"), true)
 	health.name = "Health"
 	return model
 
@@ -409,8 +415,21 @@ func _process(_delta: float) -> void:
 		cursor_position = Vector2(hit.x * 32 + 700, hit.z * 32 + 400)
 		cursor_valid = sim.placement_reason(cursor_position).is_empty()
 		ghost.position = point(cursor_position)
-		for child in ghost.get_children():
-			child.material_override = mat(Color("4bd3ae") if cursor_valid else Color("e16d73"), true)
+		tint_preview(ghost, ghost_good if cursor_valid else ghost_bad)
+	for effect in death_effects:
+		if not sim.paused:
+			effect.age += _delta * sim.speed
+			for piece in effect.pieces:
+				piece.mesh.position += piece.velocity * _delta * sim.speed
+				piece.velocity.y -= _delta * sim.speed * 6
+				if piece.mesh.position.y < 0:
+					piece.mesh.position.y = 0
+					piece.velocity = Vector3.ZERO
+		if effect.age > 4:
+			effect.node.scale = Vector3.ONE * maxf(0.01, (6 - effect.age) / 2)
+		if effect.age >= 6:
+			effect.node.queue_free()
+	death_effects = death_effects.filter(func(effect): return effect.age < 6)
 	for credit in floating_credits:
 		if not sim.paused:
 			credit.age += _delta * sim.speed
@@ -436,20 +455,27 @@ func _process(_delta: float) -> void:
 		var branch_name: String = sim.BRANCHES[int(data.kind)][branch] if branch >= 0 else sim.weapon(data).name
 		model.get_node("Badge").visible = sim.selected >= 0 and data == sim.towers[sim.selected]
 		model.get_node("Badge").text = "%s / MK %d" % [branch_name, data.level]
-		model.get_node("Head").rotation.y = -float(data.get("aim", 0))
+		model.find_child("Head", true, false).rotation.y = -float(data.get("aim", 0))
+		var rotor = model.find_child("Rotor", true, false)
+		if rotor != null and not sim.paused and data.cooldown > 0:
+			rotor.rotation.z += _delta * sim.speed * 25
 	for data in sim.enemies:
 		if not is_instance_valid(data.get("model")):
 			data["model"] = make_zombie(data)
 		var model: Node3D = data.model
 		model.set_meta("retained", true)
-		model.position = point(data.pos)
+		model.position = point(data.pos, 0.29)
 		var target = point(sim.get_route()[mini(data.segment, sim.get_route().size() - 1)])
 		if model.position.distance_to(target) > 0.01:
 			model.look_at(target)
 		var size = minf(1.65, 0.75 + sim.wave * 0.045) * float(data.get("size", 1))
-		model.scale = Vector3.ONE * size
-		model.get_node("LegL").rotation.x = sin(sim.visual_time * 10 + data.pos.x) * 0.5
-		model.get_node("LegR").rotation.x = -model.get_node("LegL").rotation.x
+		model.scale = model.get_meta("asset_scale", Vector3.ONE) * size
+		model.find_child("LegL", true, false).rotation.x = sin(sim.visual_time * 10 + data.pos.x) * 0.5
+		model.find_child("LegR", true, false).rotation.x = -model.find_child("LegL", true, false).rotation.x
+		for name in ["ArmL", "ArmR"]:
+			var arm = model.find_child(name, true, false)
+			if arm != null:
+				arm.rotation.x = sin(sim.visual_time * 5 + data.pos.x) * 0.1
 		model.get_node("Health").material_override = mat(Color("9edaff") if float(data.get("slow_time", 0)) > 0 else Color("b7e775"), true)
 		model.get_node("Health").visible = data.hp < data.max_hp or data.get("kind", "") == "Titan"
 		model.get_node("Health").scale.x = maxf(0.01, data.hp / data.max_hp)
