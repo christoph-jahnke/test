@@ -63,6 +63,12 @@ if ! timeout 120s godot --headless --path "$project_dir" --editor --import --qui
   tail -80 "$preview_dir/import.log" >&2
   exit 1
 fi
+if [[ "${MARINE_CAPTURE_PORTRAITS:-0}" == "1" ]]; then
+  timeout 90s godot --path "$project_dir" --rendering-method gl_compatibility --audio-driver Dummy --script res://tools/capture_portraits.gd > "$preview_dir/portraits.log" 2>&1
+  cat "$preview_dir/portraits.log"
+  if rg -q 'SCRIPT ERROR|^ERROR:' "$preview_dir/portraits.log"; then exit 1; fi
+  timeout 120s godot --headless --path "$project_dir" --editor --import --quit > "$preview_dir/import-portraits.log" 2>&1
+fi
 timeout 120s godot --path "$project_dir" --rendering-method gl_compatibility --audio-driver Dummy --script res://tools/capture_release.gd > "$preview_dir/capture.log" 2>&1
 cat "$preview_dir/capture.log"
 if rg -q 'SCRIPT ERROR|^ERROR:' "$preview_dir/capture.log"; then exit 1; fi

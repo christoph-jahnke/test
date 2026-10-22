@@ -4,9 +4,9 @@ const Assets = preload("res://game/asset_catalog.gd")
 func _initialize() -> void:
 	call_deferred("capture")
 func capture() -> void:
-	for index in 3:
+	for index in 9:
 		var viewport = SubViewport.new()
-		viewport.size = Vector2i(96, 96)
+		viewport.size = Vector2i(160, 160)
 		viewport.own_world_3d = true
 		viewport.transparent_bg = true
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
@@ -33,7 +33,7 @@ func capture() -> void:
 		camera.look_at(Vector3(0, 0.8, 0))
 		await create_timer(0.25).timeout
 		await RenderingServer.frame_post_draw
-		viewport.get_texture().get_image().save_png("res://art/portraits/%s.png" % ["marine", "mortar", "cryo"][index])
+		assert(viewport.get_texture().get_image().save_png(Assets.portrait_path(index)) == OK)
 		viewport.queue_free()
 	await process_frame
 	quit()

@@ -34,6 +34,9 @@ static func create(index: int) -> Node3D:
 	apply_surface_style(model)
 	return model
 
+static func portrait_path(index: int) -> String:
+	return "res://art/portraits/%s.png" % (["marine", "mortar", "cryo"][index] if index < 3 else IDS[index])
+
 static func tower_index(kind: int, branch: int) -> int:
 	return kind if branch < 0 else 3 + kind * 2 + branch
 

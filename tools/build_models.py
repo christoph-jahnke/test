@@ -11,6 +11,10 @@ def material(name,color,metal=.0,rough=.5,emission=0):
  if emission:p.inputs['Emission Color'].default_value=(*color,1);p.inputs['Emission Strength'].default_value=emission
  M[name]=m
 for args in [('armor',(.12,.21,.27),.45,.36),('steel',(.36,.44,.48),.65,.3),('dark',(.025,.04,.055),.35,.5),('rubber',(.02,.025,.03),0,.85),('copper',(.48,.25,.1),.65,.36),('ivory',(.62,.66,.59),.3,.42),('cyan',(.1,.7,.83),.2,.25,1.1),('orange',(.9,.33,.045),.15,.4),('yellow',(.85,.62,.14),.1,.6),('violet',(.44,.21,.75),.2,.35),('frost',(.3,.7,.87),.1,.22,.7),('red',(.75,.055,.025),.1,.35,.6),('skin',(.19,.24,.14),0,.78),('flesh',(.20,.018,.024),0,.6),('bone',(.66,.63,.43),0,.65),('cloth',(.11,.14,.12),0,.92),('asphalt',(.055,.07,.085),0,.95),('concrete',(.22,.26,.28),0,.9),('blood',(.15,.015,.02),0,.48)]: material(*args)
+# Combat asset palette: distinguish weapon families by their painted hulls.
+for args in [('olive',(.11,.15,.095),.35,.6),('ceramic',(.32,.38,.36),.25,.65),('sand',(.22,.16,.10),.3,.65),('necrotic',(.16,.18,.15),0,.9),('sinew',(.13,.018,.022),0,.7)]: material(*args)
+# Grey-green cadaver skin; reserve saturation for wound interiors.
+material('skin',(.14,.17,.13),0,.88)
 root=None
 
 def empty(name,pos=(0,0,0),parent=None):
@@ -64,27 +68,61 @@ def muzzle(parent,x,y,z,r=.09,length=.8):
  cyl('Bore',(x,y+length/2+.004,z),r*.64,.012,'dark',parent,(0,1,0))
  for off in [-.18,.1]:cyl('Barrel collar',(x,y+off,z),r*1.15,.05,'dark',parent,(0,1,0))
 
+def organic(name, rings, mat='skin', parent=None, sides=16):
+ # Continuous anatomical surface: z, horizontal radius, depth, forward lean.
+ rings=sorted(rings,key=lambda ring:ring[0])  # Consistent outward normals, including descending leg profiles.
+ vertices=[];faces=[]
+ for z,rx,ry,lean in rings:
+  for j in range(sides):
+   a=j*math.tau/sides;vertices.append((math.cos(a)*rx,math.sin(a)*ry+lean,z))
+ for ring in range(len(rings)-1):
+  for j in range(sides):
+   a=ring*sides+j;b=ring*sides+(j+1)%sides
+   faces.append((a,b,b+sides,a+sides))
+ faces.extend([tuple(reversed(range(sides))),tuple((len(rings)-1)*sides+j for j in range(sides))])
+ mesh=bpy.data.meshes.new(name);mesh.from_pydata(vertices,[],faces);mesh.update()
+ obj=bpy.data.objects.new(name,mesh);bpy.context.collection.objects.link(obj)
+ for poly in mesh.polygons:poly.use_smooth=True
+ return finish(obj,name,mat,parent)
+
 def tower(kind,variant):
  accent=['cyan','orange','frost'][kind]
- cyl('Anchor deck',(0,0,.12),.81,.24,'dark',vertices=8)
- cyl('Beveled plinth',(0,0,.26),.71,.15,'armor',vertices=8)
- torus('Bearing',(0,0,.37),.43,.055,'steel')
- for angle in range(0,360,90):
-  a=math.radians(angle);x,y=math.cos(a)*.6,math.sin(a)*.6
-  box('Anchor clamp',(x,y,.27),(.22,.23,.15),'steel');cyl('Anchor bolt',(x,y,.36),.045,.05,'dark',vertices=8)
-  box('Safety flash',(x,y,.385),(.14,.13,.018),accent,bevel=.005)
+ hull=['olive','sand','ceramic'][kind]
+ cyl('Recessed bearing',(0,0,.18),.57,.24,'dark',vertices=12)
+ cyl('Armored footing',(0,0,.23),.65,.12,hull,vertices=6 if kind==2 else 8)
+ torus('Bearing',(0,0,.37),.43,.04,'steel')
+ # Low, angular outriggers give heavy weapons a grounded silhouette.
+ for angle in [45,135,225,315]:
+  a=math.radians(angle);x,y=math.cos(a)*.61,math.sin(a)*.61
+  box('Stabilizer arm',(x*.74,y*.74,.17),(.7,.21,.17),'dark',rot=(0,0,a))
+  box('Clamped foot',(x,y,.09),(.32,.29,.16),hull,bevel=.025,rot=(0,0,a))
+  cyl('Lock pin',(x,y,.2),.042,.08,'steel',vertices=8)
+  box('Identification flash',(x,y,.185),(.15,.08,.018),accent,bevel=.003,rot=(0,0,a))
+ if kind==1:
+  for side in [-1,1]:
+   box('Artillery stabilizer',(side*.8,-.32,.19),(.45,.22,.2),'sand',bevel=.03)
+   link('Hydraulic stabilizer',(side*.3,-.1,.38),(side*.8,-.32,.22),.055,'steel')
+ elif kind==2:
+  for side in [-1,1]:
+   box('Capacitor bank',(side*.53,-.12,.42),(.23,.55,.4),'dark',bevel=.035)
+   for y in [-.3,-.12,.06]:cyl('Capacitor',(side*.53,y,.58),.075,.33,'steel')
+   link('Coolant return',(side*.53,-.35,.4),(side*.26,-.35,.8),.035,'copper')
  cyl('Turntable',(0,0,.49),.42,.2,'steel')
  head=empty('Head',parent=root)
- box('Armored cradle',(0,-.04,.84),(.83,.75,.44),'armor',head,.09)
- box('Top carapace',(0,-.12,1.09),(.87,.64,.15),'steel',head,.065)
+ box('Armored cradle',(0,-.04,.84),(.83,.75,.44),hull,head,.055)
+ box('Top carapace',(0,-.12,1.09),(.87,.64,.15),hull,head,.035)
  for side in [-1,1]:
-  box('Flank plate',(side*.48,-.12,.88),(.14,.68,.38),'armor',head,.045)
+  box('Flank plate',(side*.48,-.12,.88),(.14,.68,.38),hull,head,.025)
   box('Identification strip',(side*.559,-.07,.98),(.015,.39,.055),accent,head,.004)
   for i in range(4):box('Cooling vent',(side*.25,-.38+i*.07,1.178),(.14,.025,.015),'dark',head,.003)
  bolts((0,-.12,1.182),(.34,.22),head)
  scar((.11,-.12,1.184),parent=head)
  cyl('Optics mast',(-.25,-.23,1.28),.065,.25,'dark',head)
- ball('Targeting eye',(-.25,-.19,1.4),(.09,.08,.06),accent,head)
+ box('Optics enclosure',(-.25,-.19,1.36),(.18,.2,.14),'dark',head,.025)
+ cyl('Targeting lens',(-.25,-.08,1.36),.05,.025,accent,head,(0,1,0))
+ for side in [-1,1]:
+  box('Rear heat sink',(side*.31,-.5,.84),(.18,.24,.32),'dark',head,.015)
+  for z in [.74,.82,.9,.98]:box('Heat sink fin',(side*.31,-.52,z),(.24,.29,.018),'steel',head,.004)
  text('Unit stencil',(0,-.08,1.185),['SENT','MTR','CRYO'][kind],.1,'ivory',parent=head)
  if kind==0:
   if variant==0: # Long precision weapon with two rails and energized core.
@@ -103,6 +141,9 @@ def tower(kind,variant):
   else:
    for side in [-1,1]:muzzle(head,side*.2,.7,.98,.09,.94)
    box('Feed tray',(.62,-.13,.8),(.3,.55,.32),'dark',head,.04)
+   box('Ballistic gunshield',(0,.28,.85),(.95,.13,.45),hull,head,.025)
+   for side in [-1,1]:box('Receiver shoulder',(side*.24,.26,1.09),(.26,.38,.13),hull,head,.025)
+   link('Feed cable',(.55,-.38,.79),(.68,-.38,.99),.035,'rubber',head)
    for i in range(5):cyl('Linked cartridge',(.65,-.32+i*.09,1.0),.035,.2,'copper',head)
  elif kind==1:
   if variant==1: # Three individually collared launchers.
@@ -138,63 +179,88 @@ def tower(kind,variant):
   for side in [-1,1]:cyl('Coolant tank',(side*.62,-.22,.84),.15,.5,'dark',head)
 
 def zombie(kind):
- # Hierarchical limbs are exported as actual animation pivots.
- titan=kind==3; runner=kind==1; armored=kind==2
- skin='skin';bodywidth=.28 if not titan else .4
- ball('Torso',(0,0,.9),(bodywidth,.19,.38),'cloth')
- ball('Infected back',(0,-.12,1.02),(.28,.24,.25),'skin')
- for side,name in [(-1,'LegL'),(1,'LegR')]:
-  leg=empty(name,(side*.13,0,.55),root)
-  # Child coordinates are local to the hip, unlike torso meshes.
-  ball('Thigh',(0,0,-.13),(.105,.11,.21),'cloth',leg)
-  ball('Kneecap',(0,.055,-.32),(.105,.09,.08),'skin',leg)
-  link('Shin',(0,0,-.31),(0,.035,-.52),.072,'cloth',leg)
-  box('Boot',(0,.08,-.51),(.19,.3,.12),'rubber',leg,.035)
-  arm=empty('ArmL' if side<0 else 'ArmR',(side*.31,0,1.05),root)
-  link('Upper arm',(0,0,0),(side*.08,.2,-.13),.085,'skin',arm)
-  link('Forearm',(side*.08,.2,-.13),(side*.1,.46,-.22),.07,'skin',arm)
-  ball('Claw hand',(side*.1,.49,-.23),(.09,.11,.07),'skin',arm)
-  for finger in range(3):link('Claw',(side*.1-.05+finger*.05,.54,-.24),(side*.1-.05+finger*.05,.66,-.3),.013,'bone',arm)
- ball('Neck',(0,.015,1.22),(.1,.1,.15),'skin')
- ball('Skull',(0,.055,1.4),(.18,.17,.2),'skin')
- ball('Broken jaw',(0,.18,1.3),(.13,.09,.08),'flesh')
- ball('Torn cheek',(-.12,.17,1.36),(.065,.065,.13),'flesh')
- box('Facial slash',(.10,.212,1.45),(.025,.018,.21),'blood',bevel=.008,rot=(0,.3,.2))
+ # Continuous ribcage and small head; independent knees and elbows animate in game.
+ titan=kind==3;runner=kind==1;armored=kind==2
+ body=empty('Body',parent=root)
+ width=1.35 if titan else (.83 if runner else 1)
+ organic('Ribcage',[(.69,.13,.12,0),(.84,.18,.13,0),(1.04,.24,.17,.025),(1.23,.29,.19,.045),(1.37,.25,.17,.07),(1.43,.13,.11,.09)],'necrotic' if titan else 'skin',body)
+ box('Torn trousers',(0,0,.67),(.32,.25,.21),'cloth',bevel=.07)
+ # Asymmetric exposed back, muscles and torn shoulder straps.
  for side in [-1,1]:
-  ball('Eye socket',(side*.075,.202,1.435),(.057,.025,.043),'dark')
-  ball('Infected eye',(side*.075,.224,1.435),(.019,.009,.014),'red')
-  box('Heavy brow',(side*.075,.208,1.477),(.15,.067,.055),'skin',bevel=.02,rot=(0,side*.22,0))
- for i in range(5):box('Teeth',(-.08+i*.04,.253,1.31),(.023,.018,.037),'bone',bevel=.003)
- # Exposed ribs and torn uniform, no featureless recolored body.
+  ball('Scapula',(side*.12,-.14,1.26),(.10,.045,.15),'necrotic',body)
+  box('Ragged harness',(side*.18,-.02,1.32),(.055,.39,.065),'cloth',body,.01,rot=(0,side*.4,0))
+  leg=empty('LegL' if side<0 else 'LegR',(side*.12,0,.69),root)
+  organic('Thigh',[(0,.08,.085,0),(-.11,.1,.1,0),(-.28,.075,.075,.025)],'cloth',leg)
+  ball('Exposed knee',(0,.045,-.3),(.082,.09,.072),'necrotic',leg)
+  knee=empty('ShinL' if side<0 else 'ShinR',(0,0,-.3),leg)
+  link('Tibia',(0,0,0),(0,-.015,-.28),.052,'skin' if side<0 else 'cloth',knee)
+  link('Exposed shin bone',(.025,.045,-.04),(.025,.035,-.24),.02,'bone',knee)
+  box('Combat boot',(0,.065,-.3),(.155,.25,.14),'rubber',knee,.025)
+  box('Boot sole',(0,.067,-.371),(.16,.26,.025),'dark',knee,.008)
+  arm=empty('ArmL' if side<0 else 'ArmR',(side*.29,.04,1.29),root)
+  ball('Deltoid',(side*.015,0,-.025),(.085,.085,.12),'skin',arm)
+  link('Bicep',(side*.02,.015,-.06),(side*.055,.13,-.29),.067,'skin',arm)
+  ball('Elbow',(side*.055,.13,-.29),(.06,.06,.06),'bone',arm)
+  if titan and side<0:
+   arm.scale=(1.65,1.5,1.55)
+   link('Hypertrophic bicep',(0,0,-.04),(-.05,.12,-.27),.1,'necrotic',arm)
+  elbow=empty('ForearmL' if side<0 else 'ForearmR',(side*.055,.13,-.29),arm)
+  link('Forearm',(0,0,0),(side*.035,.23,-.04),.047,'necrotic',elbow)
+  link('Wrist sinew',(0,.035,.035),(side*.035,.22,0),.019,'sinew',elbow)
+  ball('Hand',(side*.035,.25,-.045),(.067,.085,.042),'skin',elbow)
+  if titan and side<0:
+   link('Club forearm',(0,0,0),(-.035,.22,-.04),.1,'necrotic',elbow)
+   for j in range(3):cyl('Forearm bone',(-.085-j*.01,.03+j*.06,-.02),.035,.18,'bone',elbow,axis=(-1,0,.3),vertices=5,r2=0)
+  for finger in range(4):
+   x=side*.035-.048+finger*.03
+   link('Finger',(x,.29,-.045),(x,.36,-.07),.011,'skin',elbow)
+   link('Talon',(x,.36,-.07),(x,.39,-.105),.008,'bone',elbow)
+ link('Hunched neck',(0,.06,1.37),(0,.16,1.5),.085,'necrotic',body)
+ organic('Cranium',[(1.43,.07,.08,.16),(1.51,.105,.10,.18),(1.64,.125,.115,.18),(1.73,.10,.09,.17),(1.76,.035,.035,.15)],'necrotic',body)
+ box('Exposed cheekbone',(-.095,.27,1.57),(.064,.04,.13),'bone',body,.015,rot=(0,.25,.1))
+ box('Sunken mouth',(0,.278,1.5),(.13,.045,.067),'dark',body,.018)
+ box('Torn jaw',(0,.273,1.46),(.14,.06,.045),'sinew',body,.015,rot=(0,.12,0))
+ for side in [-1,1]:
+  ball('Eye socket',(side*.052,.278,1.625),(.042,.02,.033),'dark',body)
+  ball('Dead pupil',(side*.052,.296,1.625),(.009,.005,.008),'bone',body)
+  box('Brow',(side*.055,.277,1.663),(.09,.04,.032),'necrotic',body,.012,rot=(0,side*.2,0))
+ for i in range(3):box('Broken tooth',(-.04+i*.032,.303,1.511),(.012,.014,.018+i*.004),'bone',body,.003,rot=(0,0,i*.2))
  for i in range(4):
-  box('Rib',(-.08,.187,.73+i*.075),(.2,.035,.028),'bone',bevel=.012,rot=(0,.2,-.15))
- ball('Open wound',(.13,.19,.93),(.065,.032,.17),'flesh')
- box('Utility belt',(0,0,.59),(.47,.36,.08),'dark',bevel=.02)
+  box('Ragged chest wound',(-.11+i*.014,.189,1.04+i*.047),(.09,.025,.068),'sinew',body,.009,rot=(0,-.3+i*.12,0))
+ for i in range(5):
+  link('Exposed rib',(-.2,.19,1.02+i*.054),(-.045,.208,1.045+i*.054),.016,'bone',body)
+ for i in range(5):
+  ball('Vertebra',(0,-.16,1.0+i*.07),(.034,.035,.028),'bone',body)
+  box('Clothing tear',(.15,-.19,1.0+i*.08),(.05,.025,.07),'cloth',body,.008,rot=(0,.1,i*.4))
  if runner:
-  root.scale=(.8,1.15,1.0)
-  for i in range(5):cyl('Spinal spur',(0,-.22,.75+i*.11),.055,.22,'bone',axis=(0,-1,.4),vertices=5,r2=0)
-  box('Torn hazard band',(.26,.02,1.12),(.13,.21,.08),'yellow')
+  root.scale=(.78,1,1)
+  for i in range(6):cyl('Spinal spur',(0,-.18,1.05+i*.07),.035,.19,'bone',body,axis=(0,-1,.4),vertices=5,r2=0)
+  link('Exposed tendon',(.1,.04,.8),(.21,-.1,1.24),.024,'sinew',body)
+  box('Torn hazard band',(.27,.06,1.3),(.12,.18,.06),'yellow',body,.01)
  elif armored:
-  box('Breastplate',(0,.17,.95),(.58,.13,.52),'armor',bevel=.07)
-  box('Trauma plate',(0,.25,1),(.31,.035,.3),'steel',bevel=.02)
-  for side in [-1,1]:box('Pauldrons',(side*.36,0,1.14),(.26,.36,.22),'armor',bevel=.06)
-  ball('Helmet',(0,.02,1.46),(.215,.2,.19),'armor')
-  box('Broken visor',(0,.205,1.46),(.3,.035,.075),'red',bevel=.02)
-  text('Armor stencil',(0,.278,1.04),'07',.1,'ivory',rot=(math.pi/2,0,0))
- elif titan:
-  ball('Mutated shoulder mass',(0,-.18,1.12),(.4,.29,.32),'skin')
-  for i in range(6):
-   x=(-.24 if i%2==0 else .19)+(i//2)*.025;z=.99+i*.065
-   ball('Necrotic growth',(x,-.31,z),(.13,.12,.12),'flesh' if i%2 else 'skin')
-  for i in range(4):cyl('Exposed vertebra',(0,-.40,.96+i*.11),.07,.14,'bone',axis=(0,-1,.2),vertices=6,r2=.025)
-  ball('Hypertrophic shoulder',(-.39,-.015,1.1),(.32,.29,.28),'skin')
-  link('Mutated club',(-.43,.05,.98),(-.54,.33,.42),.18,'skin')
+  box('Breastplate',(0,.16,1.16),(.51,.15,.43),'armor',body,.045)
+  box('Trauma plate',(0,.248,1.19),(.31,.04,.27),'steel',body,.02)
   for side in [-1,1]:
-   box('Implanted restraint',(side*.3,.015,.9),(.13,.48,.5),'dark',bevel=.05)
-   for i in range(3):cyl('Bone spike',(side*(.34+i*.07),-.04,1.28+i*.07),.085,.42,'bone',axis=(side*.5,0,1),vertices=6,r2=0)
-  ball('Torn abdomen',(0,.235,.81),(.14,.04,.19),'flesh')
-  box('Containment collar',(0,0,1.23),(.52,.39,.12),'steel',bevel=.03)
-  for i in range(3):ball('Glowing infection',(.22,-.18,1.17+i*.1),(.06,.05,.07),'red')
+   box('Pauldrons',(side*.3,.035,1.34),(.22,.3,.18),'armor',body,.045,rot=(0,side*.25,0))
+   box('Armored shin',(side*.12,.07,.28),(.12,.07,.26),'armor',bevel=.025)
+  ball('Broken helmet',(0,.17,1.69),(.145,.14,.13),'armor',body)
+  box('Cracked visor',(0,.302,1.64),(.22,.025,.054),'red',body,.01)
+  box('Helmet gash',(-.08,.09,1.8),(.045,.18,.025),'dark',body,.006,rot=(0,0,.5))
+  text('Armor stencil',(0,.273,1.16),'07',.085,'ivory',rot=(math.pi/2,0,0),parent=body)
+ elif titan:
+  ball('Hypertrophic back',(0,-.15,1.29),(.37,.29,.34),'necrotic',body)
+  organic('Distended abdomen',[(.67,.14,.12,.02),(.78,.24,.2,.03),(.95,.26,.22,.03),(1.12,.2,.16,.02)],'necrotic',body)
+  for i in range(4):box('Abdominal tear',(.04+i*.025,.233,.77+i*.07),(.15,.025,.045),'sinew',body,.012,rot=(0,.2,0))
+  for i in range(7):
+   x=(-.25 if i%2==0 else .18)+i*.013
+   ball('Necrotic growth',(x,-.33,1.1+i*.07),(.075,.055,.1),'sinew' if i%2 else 'skin',body)
+  for side in [-1,1]:
+   box('Broken restraint',(side*.25,.015,.99),(.12,.48,.17),'dark',body,.02,rot=(0,side*.15,0))
+   for i in range(3):cyl('Bone spike',(side*(.28+i*.07),-.06,1.39+i*.08),.065,.31,'bone',body,axis=(side*.5,0,1),vertices=6,r2=0)
+  box('Containment collar',(0,.1,1.46),(.4,.33,.1),'steel',body,.025)
+  for i in range(3):ball('Infection pustule',(.19,-.3,1.23+i*.1),(.045,.05,.055),'red',body)
+  root.scale=(width,1,width)
+
 
 def road(kind):
  box('Foundation',(0,0,-.05),(2.2,2,.16),'concrete',bevel=.025)

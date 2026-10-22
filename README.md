@@ -1,4 +1,4 @@
-# Marine Outpost — 0.8
+# Marine Outpost — 0.9
 
 Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit freiem Turmbau, zufälligen Routen und Forschung zwischen Einsätzen.
 
@@ -6,16 +6,20 @@ Sci-Fi-Tower-Defense für Windows in Godot 4.6. Spielbarer Entwicklungsstand mit
 
 ZIP in einen neuen Ordner entpacken, `project.godot` in Godot 4.6 importieren und **F5** drücken. Im Hauptmenü **Operation starten** wählen.
 
-## Neu in 0.8
+## Neu in 0.9
 
-- **32 Modelle:** zwölf neue Umgebungsteile ergänzen die bisherigen Türme, Gegner und Straßen. Neue Kisten, Munition, Generatoren, Funkmast, Flutlicht, Rohrverteiler, Krater, Trümmer, Rover-Wrack, Feldlazarett, Ruine und Kontrolltor.
-- **Mattere, gebrauchte Oberflächen:** gemeinsame Lack- und Rauheitstexturen mit Kratzern und Pitting; zurückgenommene Reflexionen und überarbeiteter Boden.
-- Unterschiedliche Koloniebereiche ersetzen die gleichförmigen Reaktor- und Barrikadenreihen. Straßen erhalten seltener wiederholte Quarantänemuster.
-- **Jede neue Version mit eigener Spielvorschau.** `./tools/preview.sh` rendert und prüft Bilder sowie Metadaten; frühere Vorschauordner bleiben erhalten.
+Diese Version konzentriert sich auf **Türme, Monster und Bedienung**.
 
-![Version 0.8 – arrangierte Spielszene aus dem Build](docs/previews/v0.8.0/battle.png)
+- **Alle neun Turmmodelle überarbeitet:** unterschiedliche Panzerfarben, kantige Standfüße, Stabilisatoren, Kühlkörper, Optiken und Kryo-Kondensatoren. Schüsse zeigen Mündungslicht und Waffenrückstoß, die Gatling dreht sich.
+- **Alle vier Gegner überarbeitet:** zusammenhängende Brustkörbe, kleinere Schädel, freiliegende Rippen, Sehnen und beschädigte Rüstung. Separate Knie und Unterarme ergänzen die Laufbewegung; Hetzer und Titan haben eigene Bewegungstempi. Trefferfeedback, kameraseitige Lebensbalken und Frostmarkierungen zeigen den Kampfzustand.
+- **Kompakteres HUD:** getrennte Anzeigen für Geld, Leben, Welle und Feinde; ein gemeinsames Bedienfeld statt zweier großer Leisten.
+- **Kontextansicht beim Turmklick:** passendes Modellportrait auch für Spezialisierungen, Upgrade mit Vorher-/Nachher-Schaden und Feuerrate, Hinweis auf fehlende Credits, Zielwahl und Verkauf.
+- **Einfacher bauen:** Hover-Ring, Auswahl des nächstgelegenen Turms, Mehrfachbau mit **Shift + Linksklick** und weiterhin erreichbare Vorschau bei zu wenig Geld. Mausaktionen über dem HUD bauen keine Türme.
+- **Modellgalerie:** zusätzliche Ansichten für Türme **[T]** und Monster **[M]**. Insgesamt weiterhin 32 Assets.
 
-[Nähere Spielansicht](docs/previews/v0.8.0/closeup.png) · [Galerie mit 32 Assets](docs/previews/v0.8.0/gallery.png) · [Screenshot-Ablauf](docs/PREVIEWS.md)
+![Version 0.9 – arrangierte Spielszene aus dem Build](docs/previews/v0.9.0/battle.png)
+
+[Turmauswahl und Upgrade-Vorschau](docs/previews/v0.9.0/inspector.png) · [Nahansicht](docs/previews/v0.9.0/closeup.png) · [Neun Türme](docs/previews/v0.9.0/towers.png) · [Vier Monster](docs/previews/v0.9.0/monsters.png) · [Screenshot-Ablauf](docs/PREVIEWS.md)
 
 Das Menü **Modellgalerie / 32 Assets** zeigt alle Modelle einzeln mit Zoom und als Übersicht. [Asset-Liste und Blender-Quelle](models/README.md).
 
@@ -34,6 +38,7 @@ Das Menü **Modellgalerie / 32 Assets** zeigt alle Modelle einzeln mit Zoom und 
 | --- | --- |
 | Turm zum Bauen wählen | 1 / 2 / 3 oder Baukarte |
 | Frei platzieren | Linksklick neben der Straße |
+| Mehrere Türme bauen | Shift + Linksklick; Rechtsklick beendet den Baumodus |
 | Turm auswählen | Linksklick auf Turm |
 | Bau/Selektion abbrechen | Rechtsklick / Esc |
 | Kamera bewegen / zentrieren | WASD / F |
@@ -51,7 +56,7 @@ Wellen starten automatisch nach zwölf Sekunden Vorbereitung und acht Sekunden B
 
 Forschung, Spezialisierungen und Zielprioritäten aus [Version 0.5](docs/VERSION_0_5.md) bleiben erhalten. Autosave alle 20 Sekunden außerhalb der Pause und nach abgewehrten Wellen. Beim nächsten Start **Spielstand fortsetzen** wählen.
 
-0.6 speichert freie Koordinaten und den Karten-Seed in **`run_v2.json`**. Die alten festen Run-Spielstände aus 0.5 (`run_v1.json`) sind nicht kompatibel und werden nicht verändert. **Forschung, Rekorde und Einstellungen bleiben erhalten.** Details: [Version 0.6](docs/VERSION_0_6.md).
+Seit 0.6 werden freie Koordinaten und der Karten-Seed in **`run_v2.json`** gespeichert. Spielstände aus 0.6–0.8 sind mit 0.9 kompatibel. Die alten festen Run-Spielstände aus 0.5 (`run_v1.json`) sind nicht kompatibel und werden nicht verändert. **Forschung, Rekorde und Einstellungen bleiben erhalten.** Details: [Version 0.6](docs/VERSION_0_6.md).
 
 ## Tests
 

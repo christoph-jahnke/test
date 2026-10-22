@@ -50,10 +50,12 @@ func check_models() -> void:
 			assert(extent.y - extent.x <= 0.1, "Ground dressing must fit below turret decks")
 		if index < 9:
 			assert(model.find_child("Head", true, false) != null, "Turret aiming pivot must survive export")
+			assert(FileAccess.file_exists(Assets.portrait_path(index)), "Every turret branch has a matching portrait")
 		if index == 4:
 			assert(model.find_child("Rotor", true, false) != null, "Gatling needs a separate rotor")
 		if index >= 9 and index <= 12:
-			assert(model.find_child("LegL", true, false) != null and model.find_child("LegR", true, false) != null)
+			for pivot in ["LegL", "LegR", "ShinL", "ShinR", "ForearmL", "ForearmR", "Body"]:
+				assert(model.find_child(pivot, true, false) != null, "Anatomical rig pivot missing: " + pivot)
 		var bytes = FileAccess.get_file_as_bytes("res://models/%s.glb" % Assets.IDS[index])
 		var digest = HashingContext.new()
 		digest.start(HashingContext.HASH_SHA256)

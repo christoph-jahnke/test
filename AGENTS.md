@@ -13,6 +13,10 @@ Der Nutzer möchte mit **jeder Version einen Screenshot** sehen.
 - Im Abschluss die neue Spielvorschau als Markdown-Bild einbetten und den Download der zugehörigen Git-Revision verlinken. Eine Galerie kann zusätzlich verlinkt werden.
 - Grafik-, Windows- und Performanceprüfungen jeweils nur im tatsächlich ausgeführten Umfang beschreiben.
 
+## Aktueller Schwerpunkt
+
+Der Nutzer möchte grafische Arbeit vorerst auf Türme, Monster und UX konzentrieren. Die Umgebung hat derzeit nachrangige Priorität.
+
 ## Entwicklung und Assets
 
 `tools/build_models.py` erzeugt die GLBs mit Blender. Blender ist für das Spielen nicht erforderlich. Bei neuen Assets die Registrierung, Galerie und Modelltests aktualisieren. Nicht abgesicherte Nutzeränderungen an generierten GLBs erhalten.

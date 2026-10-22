@@ -29,13 +29,13 @@ func _ready() -> void:
 	var key = DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-48, -25, 0)
 	key.light_color = Color("ffe0b4")
-	key.light_energy = 1.3
+	key.light_energy = 1.0
 	key.shadow_enabled = true
 	add_child(key)
 	var fill = DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-35, 140, 0)
 	fill.light_color = Color("80bcdc")
-	fill.light_energy = 0.45
+	fill.light_energy = 0.3
 	add_child(fill)
 	camera = Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -81,6 +81,10 @@ func _ready() -> void:
 	make_button(ui, "Nächstes →", Vector2(640, 834), func(): show_model(posmod(selection + 1, Assets.IDS.size())))
 	make_button(ui, "Alle %d ansehen" % Assets.IDS.size(), Vector2(895, 834), show_all)
 	make_button(ui, "Zurück zum Spiel", Vector2(1150, 834), func(): get_tree().change_scene_to_file("res://game/world_3d.tscn"))
+	make_button(ui, "Türme [T]", Vector2(25, 834), show_combat.bind(false))
+	ui.get_child(ui.get_child_count() - 1).size.x = 160
+	make_button(ui, "Monster [M]", Vector2(195, 834), show_combat.bind(true))
+	ui.get_child(ui.get_child_count() - 1).size.x = 160
 	show_model(0)
 
 func make_button(ui: CanvasLayer, text: String, pos: Vector2, action: Callable) -> void:
@@ -151,9 +155,42 @@ func show_all() -> void:
 	title.text = "MODELLGALERIE / %d ORIGINALE ASSETS" % Assets.IDS.size()
 	detail.text = "9 Türme · 4 Gegner · 4 Wegarten · 15 Kolonieobjekte"
 
+func show_combat(monsters: bool = false) -> void:
+	index_panel.visible = false
+	all_models = true
+	clear_display()
+	var count = 4 if monsters else 9
+	for i in count:
+		var index = 9 + i if monsters else [0, 3, 4, 1, 5, 6, 2, 7, 8][i]
+		var model = Assets.create(index)
+		display.add_child(model)
+		model.rotation.y = PI - 0.3
+		model.position = Vector3((i - 1.5) * 2.35, 0, 0) if monsters else Vector3((i % 3 - 1) * 4.1, 0, (i / 3 - 1) * 4.6)
+		# Gameplay applies titan size separately; show its mass here as well.
+		if index == 12:
+			model.scale *= 1.35
+		pedestal(model.position, 1.02 if monsters else 1.65)
+		var caption = Label3D.new()
+		caption.text = Assets.NAMES[index]
+		caption.position = model.position + Vector3(0, 0.05, 1.1 if monsters else 1.6)
+		caption.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		caption.font_size = 32
+		caption.pixel_size = 0.005 if monsters else 0.006
+		caption.modulate = Color("b4ceda")
+		display.add_child(caption)
+	camera.size = 11.5 if monsters else 18.5
+	camera.position = Vector3(0, 5, 9) if monsters else Vector3(0, 13, 13)
+	camera.look_at(Vector3(0, 0.85, 0) if monsters else Vector3(0, 0.85, 0.65))
+	title.text = "INFEKTION / VIER BEDROHUNGEN" if monsters else "ARSENAL / NEUN WAFFENPLATTFORMEN"
+	detail.text = "Infizierter · Hetzer · Panzer-Infizierter · Titan / anatomische Gelenke und beschädigte Körper" if monsters else "Marine, Mörser und Kryo / Basis, Spezialisierung I, Spezialisierung II / Originale Spielmodelle"
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_RIGHT:
+		if event.keycode == KEY_T:
+			show_combat(false)
+		elif event.keycode == KEY_M:
+			show_combat(true)
+		elif event.keycode == KEY_RIGHT:
 			show_model(posmod(selection + 1, Assets.IDS.size()))
 		elif event.keycode == KEY_LEFT:
 			show_model(posmod(selection - 1, Assets.IDS.size()))

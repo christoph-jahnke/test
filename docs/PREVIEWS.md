@@ -18,6 +18,12 @@ Mit vorhandenem grafischem Display kann der Godot-Teil direkt gestartet werden:
 godot --path . --rendering-method gl_compatibility --script res://tools/capture_release.gd
 ```
 
+Bei geänderten Turmmodellen können die neun Bau-/Upgrade-Portraits im selben Display neu gerendert werden:
+
+```sh
+MARINE_CAPTURE_PORTRAITS=1 ./tools/preview.sh
+```
+
 Die erzeugte Aufnahme muss anschließend visuell angesehen werden; Dateiprüfungen allein bestätigen keine gute Darstellung.
 
 ## Aufnahmen
@@ -27,6 +33,7 @@ Die erzeugte Aufnahme muss anschließend visuell angesehen werden; Dateiprüfung
 - `closeup.png`: nähere Kamerasicht.
 - `menu.png`: sichtbare Version und Menü.
 - `gallery.png`: aktuelle Asset-Auswahl.
+- `towers.png`, `monsters.png`: eigene Galerieansichten der Kampfmodelle (ab 0.9).
 - `capture.json`: Version, Auflösung, Karten-Seed, Renderer, Engine und Asset-Anzahl.
 
 Die Aufnahmen nutzen eine arrangierte Testsituation mit festen Türmen, Gegnern und Geldständen. Sie werden vom Spielrenderer erzeugt und zeigen keinen dokumentierten Spielerfolg. Auflösung: 1440 × 900. Windows-Darstellung und Windows-Leistung benötigen eigene Tests.

@@ -8,6 +8,8 @@ var ghost: Node3D
 var cursor_position = Vector2.ZERO
 var cursor_valid = false
 var building = false
+var hovered_tower = -1
+var hit_material: StandardMaterial3D
 var floating_credits: Array[Dictionary] = []
 var death_effects: Array[Dictionary] = []
 var ghost_good: StandardMaterial3D
@@ -142,6 +144,10 @@ func _ready() -> void:
 	ghost_good = preview_material(Color(0.2, 0.9, 0.7, 0.5))
 	ghost_bad = preview_material(Color(0.95, 0.2, 0.25, 0.5))
 	ghost.visible = false
+	hit_material = StandardMaterial3D.new()
+	hit_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hit_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	hit_material.albedo_color = Color(1.0, 0.62, 0.43, 0.42)
 	command_ui = CommandUI.new()
 	command_ui.world = self
 	add_child(command_ui)
@@ -328,6 +334,31 @@ func make_tower(data: Dictionary) -> Node3D:
 	badge.pixel_size = 0.014
 	badge.modulate = sim.weapon(data).color
 	model.add_child(badge)
+	var ring = TorusMesh.new()
+	ring.inner_radius = 0.83
+	ring.outer_radius = 0.88
+	ring.rings = 40
+	ring.ring_segments = 6
+	var selection = shape(model, Vector3(0, 0.13, 0), ring, Color("6cded1"), true)
+	selection.name = "Selection"
+	selection.visible = false
+	var head = model.find_child("Head", true, false)
+	var flash = Node3D.new()
+	flash.name = "MuzzleFX"
+	head.add_child(flash)
+	var kind = int(data.kind)
+	var branch = int(data.get("branch", -1))
+	flash.position = Vector3(0, 0.98, -1.18 if branch < 0 else (-1.85 if branch == 0 else -1.52))
+	if kind == 1:
+		flash.position = Vector3(0, 1.58 if branch != 0 else 1.88, -0.68)
+	elif kind == 2:
+		flash.position = Vector3(0, 1.55, -0.08)
+	var glow = sphere(flash, Vector3.ZERO, 0.16 if kind == 0 else 0.22, Color("b6edff") if kind == 2 else Color("ffca71"))
+	glow.material_override = mat(Color("b6edff") if kind == 2 else Color("ffca71"), true)
+	glow.scale = Vector3(0.65, 0.65, 1.8) if kind == 0 else Vector3.ONE
+	flash.visible = false
+	model.set_meta("last_cooldown", float(data.cooldown))
+	model.set_meta("recoil_time", 0.0)
 	return model
 
 func make_zombie(data: Dictionary) -> Node3D:
@@ -337,15 +368,38 @@ func make_zombie(data: Dictionary) -> Node3D:
 	if data.get("kind", "") == "Titan":
 		var badge = Label3D.new()
 		badge.text = "TITAN"
-		badge.position = Vector3(0, 1.9, 0)
+		badge.position = Vector3(0, 2.1, 0)
 		badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		badge.font_size = 32
 		badge.pixel_size = 0.012
 		badge.modulate = Color("f0ad85")
 		model.add_child(badge)
-	var health = box(model, Vector3(0, 1.75, 0), Vector3(0.7, 0.06, 0.06), Color("b7e775"), true)
+	var health = Node3D.new()
 	health.name = "Health"
+	model.add_child(health)
+	health.position = Vector3(0, 1.95, 0)
+	box(health, Vector3.ZERO, Vector3(0.85, 0.095, 0.01), Color("0c141c"))
+	var fill = box(health, Vector3(0, 0, -0.012), Vector3(0.8, 0.05, 0.015), Color("bedc83"), true)
+	fill.name = "Fill"
+	var frost_mesh = TorusMesh.new()
+	frost_mesh.inner_radius = 0.32
+	frost_mesh.outer_radius = 0.36
+	frost_mesh.rings = 24
+	frost_mesh.ring_segments = 6
+	var frost = shape(model, Vector3(0, 0.03, 0), frost_mesh, Color("90d8ee"), true)
+	frost.name = "Frost"
+	frost.visible = false
+	model.set_meta("previous_hp", float(data.hp))
+	model.set_meta("hit_time", 0.0)
 	return model
+
+func damage_overlay(node: Node, active: bool) -> void:
+	if node.name in ["Health", "Frost"]:
+		return
+	if node is MeshInstance3D:
+		node.material_overlay = hit_material if active else null
+	for child in node.get_children():
+		damage_overlay(child, active)
 
 func center_camera() -> void:
 	camera_shift = Vector3.ZERO
@@ -402,28 +456,47 @@ func _unhandled_input(event: InputEvent) -> void:
 			building = false
 			sim.selected = -1
 		elif event.button_index == MOUSE_BUTTON_LEFT and not sim.paused and sim.lives > 0:
-			select_at_screen(event.position)
+			select_at_screen(event.position, event.shift_pressed)
 
-func select_at_screen(screen: Vector2) -> void:
+func tower_at_screen(screen: Vector2) -> int:
+	# Nearest projected body wins; array order must not pick a neighbouring turret.
+	var closest = -1
+	var distance = 27.0
+	for index in sim.towers.size():
+		var pos: Vector2 = sim.get_pads()[sim.towers[index].pad]
+		var projected = camera.unproject_position(point(pos, 0.75))
+		var candidate = projected.distance_to(screen)
+		var model = sim.towers[index].get("model")
+		if is_instance_valid(model):
+			var muzzle = model.find_child("MuzzleFX", true, false)
+			if muzzle != null:
+				var tip = camera.unproject_position(muzzle.global_position)
+				candidate = minf(candidate, screen.distance_to(Geometry2D.get_closest_point_to_segment(screen, projected, tip)))
+		if candidate < distance:
+			closest = index
+			distance = candidate
+	return closest
+
+func select_at_screen(screen: Vector2, repeat_build: bool = false) -> void:
+	if command_ui.blocks_world(screen):
+		return
 	var hit = ground_at(screen)
 	if hit == null:
 		return
 	var map_pos = Vector2(hit.x * 32 + 700, hit.z * 32 + 400)
-	# Pick rendered bodies first so clicking the barrel/head also selects a tower.
-	for index in sim.towers.size():
-		var tower: Dictionary = sim.towers[index]
-		var pos: Vector2 = sim.get_pads()[tower.pad]
-		var projected = camera.unproject_position(point(pos, 0.8))
-		if map_pos.distance_to(pos) < 34 or projected.distance_to(screen) < 22:
-			sim.selected = index
-			building = false
-			return
+	var picked = tower_at_screen(screen)
+	if picked >= 0:
+		sim.selected = picked
+		building = false
+		return
 	if building:
 		var reason: String = sim.placement_reason(map_pos)
 		if not sim.place_at(map_pos):
 			command_ui.show_toast(reason)
 		else:
-			building = false
+			building = repeat_build and sim.cash >= sim.WEAPONS[sim.build_type].cost
+			if building:
+				sim.selected = -1
 	else:
 		sim.selected = -1
 
@@ -435,7 +508,10 @@ func _process(_delta: float) -> void:
 		camera_shift.z = clampf(camera_shift.z, -10, 10)
 		camera.position = Vector3(6, 36, 30) + camera_shift
 	var hit = ground_at(get_viewport().get_mouse_position())
-	ghost.visible = building and not command_ui.menu.visible and hit != null and get_viewport().get_mouse_position().y > 104 and get_viewport().get_mouse_position().y < 655
+	var screen_mouse = get_viewport().get_mouse_position()
+	hovered_tower = tower_at_screen(screen_mouse) if not building and not command_ui.blocks_world(screen_mouse) else -1
+	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hovered_tower >= 0 else Input.CURSOR_ARROW)
+	ghost.visible = building and not command_ui.blocks_world(screen_mouse) and hit != null
 	if ghost.visible:
 		cursor_position = Vector2(hit.x * 32 + 700, hit.z * 32 + 400)
 		cursor_valid = sim.placement_reason(cursor_position).is_empty()
@@ -466,6 +542,7 @@ func _process(_delta: float) -> void:
 	floating_credits = floating_credits.filter(func(credit): return credit.age < 1.4)
 	for child in units.get_children():
 		child.set_meta("retained", false)
+	var muzzle_origins: Dictionary = {}
 	for data in sim.towers:
 		var branch = int(data.get("branch", -1))
 		if is_instance_valid(data.get("model")) and int(data.get("rendered_branch", -1)) != branch:
@@ -480,7 +557,24 @@ func _process(_delta: float) -> void:
 		var branch_name: String = sim.BRANCHES[int(data.kind)][branch] if branch >= 0 else sim.weapon(data).name
 		model.get_node("Badge").visible = sim.selected >= 0 and data == sim.towers[sim.selected]
 		model.get_node("Badge").text = "%s / MK %d" % [branch_name, data.level]
-		model.find_child("Head", true, false).rotation.y = -float(data.get("aim", 0))
+		var selected = sim.selected >= 0 and data == sim.towers[sim.selected]
+		var hovered = hovered_tower >= 0 and data == sim.towers[hovered_tower]
+		model.get_node("Selection").visible = selected or hovered
+		model.get_node("Selection").scale = Vector3.ONE * (1.0 if selected else 0.9)
+		var head = model.find_child("Head", true, false)
+		head.rotation.y = -float(data.get("aim", 0))
+		var recoil = float(model.get_meta("recoil_time", 0.0))
+		if not sim.paused:
+			recoil = maxf(0, recoil - _delta * sim.speed)
+			if float(data.cooldown) > float(model.get_meta("last_cooldown", 0.0)) + 0.001:
+				recoil = 0.16
+		model.set_meta("recoil_time", recoil)
+		model.set_meta("last_cooldown", float(data.cooldown))
+		head.position.z = recoil * 0.7 if int(data.kind) != 2 else 0.0
+		var flash = head.get_node("MuzzleFX")
+		flash.visible = recoil > 0.09
+		flash.scale = Vector3.ONE * (0.5 + recoil * 4)
+		muzzle_origins[sim.get_pads()[data.pad]] = flash.global_position
 		var rotor = model.find_child("Rotor", true, false)
 		if rotor != null and not sim.paused and data.cooldown > 0:
 			rotor.rotation.z += _delta * sim.speed * 25
@@ -489,21 +583,42 @@ func _process(_delta: float) -> void:
 			data["model"] = make_zombie(data)
 		var model: Node3D = data.model
 		model.set_meta("retained", true)
-		model.position = point(data.pos, 0.29)
+		var gait = 14.0 if data.get("kind", "") == "Sprinter" else (5.0 if data.get("kind", "") == "Titan" else 8.0)
+		var phase = sim.visual_time * gait + data.pos.x
+		var frozen = float(data.get("slow_time", 0)) > 0
+		model.position = point(data.pos, 0.29 + absf(sin(phase)) * 0.025)
 		var target = point(sim.get_route()[mini(data.segment, sim.get_route().size() - 1)])
+		target.y = model.position.y
 		if model.position.distance_to(target) > 0.01:
 			model.look_at(target)
 		var size = minf(1.65, 0.75 + sim.wave * 0.045) * float(data.get("size", 1))
 		model.scale = model.get_meta("asset_scale", Vector3.ONE) * size
-		model.find_child("LegL", true, false).rotation.x = sin(sim.visual_time * 10 + data.pos.x) * 0.5
-		model.find_child("LegR", true, false).rotation.x = -model.find_child("LegL", true, false).rotation.x
-		for name in ["ArmL", "ArmR"]:
-			var arm = model.find_child(name, true, false)
-			if arm != null:
-				arm.rotation.x = sin(sim.visual_time * 5 + data.pos.x) * 0.1
-		model.get_node("Health").material_override = mat(Color("9edaff") if float(data.get("slow_time", 0)) > 0 else Color("b7e775"), true)
-		model.get_node("Health").visible = data.hp < data.max_hp or data.get("kind", "") == "Titan"
-		model.get_node("Health").scale.x = maxf(0.01, data.hp / data.max_hp)
+		model.find_child("LegL", true, false).rotation.x = sin(phase) * 0.44
+		model.find_child("LegR", true, false).rotation.x = -sin(phase) * 0.44
+		for side in 2:
+			var offset = phase + side * PI
+			model.find_child(["ShinL", "ShinR"][side], true, false).rotation.x = maxf(0, -sin(offset)) * 0.55
+			model.find_child(["ArmL", "ArmR"][side], true, false).rotation.x = sin(offset + 0.6) * 0.23
+			model.find_child(["ForearmL", "ForearmR"][side], true, false).rotation.x = -0.1 + sin(offset) * 0.16
+		model.find_child("Body", true, false).rotation.z = sin(phase * 0.5) * 0.025
+		var health = model.get_node("Health")
+		health.look_at(camera.global_position)
+		health.visible = data.hp < data.max_hp or data.get("kind", "") == "Titan"
+		var ratio = clampf(data.hp / data.max_hp, 0.01, 1)
+		health.get_node("Fill").scale.x = ratio
+		health.get_node("Fill").position.x = -0.4 * (1 - ratio)
+		health.get_node("Fill").material_override = mat(Color("9edaff") if frozen else (Color("eb956b") if ratio < 0.3 else Color("bedc83")), true)
+		model.get_node("Frost").visible = frozen
+		var hit_time = float(model.get_meta("hit_time", 0.0))
+		var was_hit = hit_time > 0
+		if not sim.paused:
+			hit_time = maxf(0, hit_time - _delta * sim.speed)
+			if float(data.hp) < float(model.get_meta("previous_hp", data.hp)):
+				hit_time = 0.12
+		if was_hit != (hit_time > 0):
+			damage_overlay(model, hit_time > 0)
+		model.set_meta("hit_time", hit_time)
+		model.set_meta("previous_hp", float(data.hp))
 	for child in units.get_children():
 		if not child.get_meta("retained"):
 			child.queue_free()
@@ -519,7 +634,7 @@ func _process(_delta: float) -> void:
 		if beam_pool.size() <= index:
 			beam_pool.append(box(effects, Vector3.ZERO, Vector3.ONE, Color.WHITE, true))
 		var beam = beam_pool[index]
-		var a = point(shot.from, 1.0)
+		var a: Vector3 = muzzle_origins.get(shot.from, point(shot.from, 1.0))
 		var b = point(shot.to, 0.8)
 		beam.visible = true
 		beam.position = (a + b) / 2

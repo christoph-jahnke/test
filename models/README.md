@@ -62,3 +62,16 @@ Die Baukarten zeigen kleine, direkt aus den GLBs gerenderte Portraits. `tools/ca
 Im Spielmenü öffnet **Modellgalerie / 32 Assets** die Nahansicht mit Zoom, Einzelwahl und Gesamtansicht. Vor dem Wechsel wird ein laufender Run gespeichert. GLBs können auch direkt in Godot oder Blender geöffnet werden.
 
 Die Modelle sind ein erster stilisierter Produktionsschritt. Handgemalte/gebakte Texturen, hochwertige Skinning-Animationen und gründliche Windows-Performance-Tests bleiben ausstehend.
+
+## Überarbeitung 0.9
+
+Die neun Türme und vier Monster wurden neu exportiert. Turmfamilien besitzen unterschiedliche Hull-Farben und Standfüße; Waffen und Kühltechnik wurden weiter ausgearbeitet. Die vier Gegner haben durchgehende Brustkorb-Meshes, verletzte Körper, kleinere Köpfe und zusätzliche Gelenke `Body`, `ShinL/R` und `ForearmL/R`. Die Laufanimation und die Kampfreaktionen werden im Spielcontroller gesteuert. Alle bisherigen Asset-IDs bleiben erhalten.
+
+Die Galerie zeigt über **T** die neun Waffenplattformen und über **M** die vier Gegnertypen. Die neun Turmportraits sind echte Godot-Renderings der jeweiligen GLBs in 160 × 160 Pixeln.
+
+Nur die Kampfmodelle neu bauen:
+
+```sh
+blender -b --threads 4 --python tools/build_models.py -- --only=1,2,3,4,5,6,7,8,9,10,11,12,13
+MARINE_CAPTURE_PORTRAITS=1 ./tools/preview.sh
+```
